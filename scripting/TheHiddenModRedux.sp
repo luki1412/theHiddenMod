@@ -17,7 +17,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.18"
+#define PLUGIN_VERSION "1.19"
 
 //int gvars
 int g_iTheCurrentHidden = 0;
@@ -34,11 +34,11 @@ bool g_bActivated = false;
 bool g_bTimerDie = false;
 bool g_bTimerDieTick = false;
 bool g_bLateLoad;
+bool g_bJumped = false;
 //float gvars
 float g_fHiddenStamina;
 float g_fHiddenInvisibility;
 float g_fHiddenVisible;
-float g_fHiddenJump;
 float g_fHiddenBomb;
 float g_fTickInterval;
 //handles
@@ -64,8 +64,7 @@ ConVar g_hCV_hidden_allowrazorback;
 ConVar g_hCV_hidden_hpperplayer;
 ConVar g_hCV_hidden_hpperkill;
 ConVar g_hCV_hidden_hpbase;
-ConVar g_hCV_hidden_jumptime;
-ConVar g_hCV_hidden_pouncetime;
+ConVar g_hCV_hidden_stamina;
 ConVar g_hCV_hidden_starvationtime;
 ConVar g_hCV_hidden_bombtime;
 ConVar g_hCV_hidden_bombletcount;
@@ -77,8 +76,7 @@ Handle g_hWeaponEquip;
 Handle g_hGameConfig;
 //cvar globals
 int g_iCV_hidden_tauntdamage;
-float g_fCV_hidden_jumptime;
-float g_fCV_hidden_pouncetime;
+float g_fCV_hidden_stamina;
 float g_fCV_hidden_starvationtime;
 float g_fCV_hidden_bombtime;
 float g_fCV_hidden_visible_damage; 
@@ -150,8 +148,7 @@ public void OnPluginStart()
 	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "60.0", "Spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
 	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "2000.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 10000.0);
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
-	g_hCV_hidden_jumptime = CreateConVar("sm_thehidden_jumptime", "0.1", "The Hidden's special jump's cooldown.", FCVAR_NONE, true, 0.1, true, 100.0);
-	g_hCV_hidden_pouncetime = CreateConVar("sm_thehidden_pouncetime", "12.0", "The Hidden's pounce's max duration.", FCVAR_NONE, true, 1.0, true, 1000.0);
+	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time til the Hidden dies without killing.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
 
@@ -294,8 +291,7 @@ public void OnClientPutInServer(int client)
 //load these only when the game starts
 void LoadCvars()
 {
-	g_fCV_hidden_jumptime = GetConVarFloat(g_hCV_hidden_jumptime);
-	g_fCV_hidden_pouncetime = GetConVarFloat(g_hCV_hidden_pouncetime);
+	g_fCV_hidden_stamina = GetConVarFloat(g_hCV_hidden_stamina);
 	g_fCV_hidden_starvationtime = GetConVarFloat(g_hCV_hidden_starvationtime);
 	g_fCV_hidden_bombtime = GetConVarFloat(g_hCV_hidden_bombtime);
 	g_fCV_hidden_visible_damage = GetConVarFloat(g_hCV_hidden_visible_damage); 
@@ -452,7 +448,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	
 	if (client == g_iTheCurrentHidden) 
 	{
-		if (g_bHiddenSticky && g_fHiddenStamina < (g_fCV_hidden_pouncetime-0.5)) 
+		if (g_bHiddenSticky) 
 		{
 			if (buttons & IN_JUMP > 0)
 			{
@@ -478,7 +474,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if (!IsFakeClient(client))
 			{
 				buttons&=~IN_ATTACK2;
-				HiddenSpecial();
+				HiddenSuperJump();
 				return Plugin_Changed;
 			}
 		}
@@ -952,7 +948,6 @@ public void OnGameFrame()
 		}
 		
 		SetEntPropFloat(g_iTheCurrentHidden, Prop_Send, "m_flMaxspeed", 400.0);
-		int eflags = GetEntityFlags(g_iTheCurrentHidden);
 		
 		if (g_fHiddenInvisibility > 0.0) 
 		{
@@ -981,13 +976,13 @@ public void OnGameFrame()
 		{
 			HiddenUnstick();
 			
-			if (g_fHiddenStamina < g_fCV_hidden_pouncetime) 
+			if (g_fHiddenStamina < g_fCV_hidden_stamina && !g_bJumped) 
 			{
-				g_fHiddenStamina += g_fTickInterval/2;
+				g_fHiddenStamina += g_fTickInterval*3;
 				
-				if (g_fHiddenStamina > g_fCV_hidden_pouncetime) 
+				if (g_fHiddenStamina > g_fCV_hidden_stamina) 
 				{
-					g_fHiddenStamina = g_fCV_hidden_pouncetime;
+					g_fHiddenStamina = g_fCV_hidden_stamina;
 				}
 			}
 		} 
@@ -1004,19 +999,6 @@ public void OnGameFrame()
 			else if (GetEntityMoveType(g_iTheCurrentHidden) == MOVETYPE_WALK) 
 			{
 				SetEntityMoveType(g_iTheCurrentHidden, MOVETYPE_NONE);
-			}
-		}
-		
-		if (eflags & FL_ONGROUND || g_bHiddenSticky) 
-		{
-			if (g_fHiddenJump > 0.0) 
-			{
-				g_fHiddenJump -= g_fTickInterval;
-				
-				if (g_fHiddenJump < 0.0) 
-				{
-					g_fHiddenJump = 0.0;
-				}
 			}
 		}
 		
@@ -1239,6 +1221,11 @@ public Action NotifyHidden(Handle timer, any client)
 		PrintHintText(g_iTheCurrentHidden, "%t", "hidden_notify");
 	}
 }
+//jump check
+public Action Timer_Jumped(Handle timer, any data)
+{
+	g_bJumped = false;
+}
 //force round restart
 public Action Timer_Win(Handle timer, any data) 
 {
@@ -1454,9 +1441,8 @@ void SelectHidden()
 	g_iHiddenHpMax = GetConVarInt(g_hCV_hidden_hpbase)+((Client_Total()-1)*GetConVarInt(g_hCV_hidden_hpperplayer));
 	g_iHiddenCurrentHp = g_iHiddenHpMax;
 	g_fHiddenVisible = 0.0;
-	g_fHiddenStamina = g_fCV_hidden_pouncetime;
+	g_fHiddenStamina = g_fCV_hidden_stamina;
 	g_bHiddenSticky = false;
-	g_fHiddenJump = 0.0;
 	g_fHiddenInvisibility = g_fCV_hidden_starvationtime;
 	g_fHiddenBomb = 0.0;
 	int forcedcommand = GetClientOfUserId(g_iForceCommandHidden);
@@ -1492,19 +1478,11 @@ void SelectHidden()
 //dash/superjump
 bool HiddenSuperJump() 
 {
-	if (g_iTheCurrentHidden == 0) 
+	if (g_iTheCurrentHidden == 0 || HiddenStick() != -1 || g_fHiddenStamina < 4.0 || g_bJumped) 
 	{
-		return false;
+		return;
 	}
-	
-	if (g_fHiddenJump > 0.0)
-	{
-		return false;
-	}
-	
-	g_fHiddenJump = g_fCV_hidden_jumptime;
-	float f_HiddenVisiblePounce = g_fCV_hidden_visible_pounce;
-	
+		
 	HiddenUnstick();
 	
 	float ang[3];
@@ -1520,31 +1498,12 @@ bool HiddenSuperJump()
 	vel[1] += tmp[1]*700.0;
 	vel[2] += tmp[2]*1400.0;
 	
-	int flags=GetEntityFlags(g_iTheCurrentHidden);
-	
-	if (flags & FL_ONGROUND)
-	{
-		flags &= ~FL_ONGROUND;
-	}
-	
-	SetEntityFlags(g_iTheCurrentHidden, flags);
 	TeleportEntity(g_iTheCurrentHidden, NULL_VECTOR, NULL_VECTOR, vel);
-	AddHiddenVisible(f_HiddenVisiblePounce);
-	
-	return true;
-}
-//dash/superjump
-void HiddenSpecial() 
-{
-	if (g_iTheCurrentHidden == 0) 
-	{
-		return;
-	}
-	
-	if (HiddenStick() == -1) 
-	{
-		HiddenSuperJump();
-	}
+	AddHiddenVisible(g_fCV_hidden_visible_pounce);
+	g_fHiddenStamina -= 4.0;
+	g_bJumped = true;
+	CreateTimer(1.0, Timer_Jumped, _, TIMER_FLAG_NO_MAPCHANGE);
+	return;
 }
 //stick to the walls
 int HiddenStick() 
@@ -1567,9 +1526,9 @@ int HiddenStick()
 		float pos2[3];
 		TR_GetEndPosition(pos2, ray);
 		
-		if (GetVectorDistance(pos, pos2)<64.0) 
+		if (GetVectorDistance(pos, pos2) < 64.0) 
 		{
-			if (g_bHiddenSticky || g_fHiddenStamina < g_fCV_hidden_pouncetime*0.7) 
+			if (g_bHiddenSticky) 
 			{
 				CloseHandle(ray);
 				return 0;
@@ -1628,7 +1587,7 @@ void ShowHiddenHP()
 	}
 	
 	int perc = RoundToCeil(float(g_iHiddenCurrentHp)/float(g_iHiddenHpMax)*100.0);
-	int ponc = RoundToCeil(g_fHiddenStamina/g_fCV_hidden_pouncetime*100.0);
+	int ponc = RoundToCeil(g_fHiddenStamina/g_fCV_hidden_stamina*100.0);
 	int cbomb = RoundToCeil(100.0-g_fHiddenBomb/g_fCV_hidden_bombtime*100.0);
 	float starv = g_fHiddenInvisibility/g_fCV_hidden_starvationtime*100.0; 
 	int hung = RoundToCeil(100.0-starv);
@@ -1714,12 +1673,12 @@ void Client_SetHideHud(int client, int flags)
 //reset the hidden
 void ResetHidden() 
 {
-	g_iTheCurrentHidden = 0;
-	
 	if (IsPlayerHere(g_iTheCurrentHidden)) 
 	{
 		RemoveHiddenPowers(g_iTheCurrentHidden);
 	}
+	
+	g_iTheCurrentHidden = 0;
 }
 //set the overlay
 void OverlayCommand(int client, char[] overlay) 
@@ -1925,7 +1884,7 @@ public Action ExplodeBomblet(Handle timer, any ent)
 			DispatchKeyValue(explosion, "spawnflags", "0");
 			SetEntProp(explosion, Prop_Send, "m_iTeamNum", team);
 			SetEntPropEnt(explosion, Prop_Send, "m_hOwnerEntity", client);
-			SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
+			//SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
 			DispatchSpawn(explosion);
 			ActivateEntity(explosion);
 			
