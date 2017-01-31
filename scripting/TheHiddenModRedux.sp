@@ -17,7 +17,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.19"
+#define PLUGIN_VERSION "1.20"
 
 //int gvars
 int g_iTheCurrentHidden = 0;
@@ -1592,19 +1592,24 @@ void ShowHiddenHP()
 	float starv = g_fHiddenInvisibility/g_fCV_hidden_starvationtime*100.0; 
 	int hung = RoundToCeil(100.0-starv);
 	
+	if (perc <= 0.0)
+	{
+		return;
+	}
+	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsPlayerHereLoopCheck(i) && !IsFakeClient(i) && GetClientTeam(i) > 0 && perc > 0.0)
+		if (IsPlayerHereLoopCheck(i) && !IsFakeClient(i) && GetClientTeam(i) > 0)
 		{
 			if (i != g_iTheCurrentHidden)
 			{
 				if (perc > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.35, 10, 255, 10, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.23, 50, 255, 50, 255, 1, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.35, 255, 10, 10, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.23, 255, 50, 50, 255, 1, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(i, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud", perc);
@@ -1613,22 +1618,22 @@ void ShowHiddenHP()
 			{
 				if (perc > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.35, 10, 255, 10, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.23, 40, 255, 40, 255, 1, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.35, 255, 10, 10, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.23, 255, 50, 50, 255, 1, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud2", perc);
 			
-				SetHudTextParams(-1.0, 0.125, 0.36, 10, 255, 127, 255, 1, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.125, 0.23, 10, 255, 128, 255, 1, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudStamina, "%t: %.0i%%", "hidden_hud3", ponc);
 				
-				SetHudTextParams(-1.0, 0.150, 0.37, 10, 127, 255, 255, 1, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.150, 0.23, 70, 70, 255, 255, 1, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudClusterBomb, "%t: %.0i%%", "hidden_hud4", cbomb);
 				
-				SetHudTextParams(-1.0, 0.175, 0.38, 127, 10, 255, 255, 1, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.175, 0.23, 144, 40, 255, 255, 1, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHunger, "%t: %.0i%%", "hidden_hud5", hung);
 			}
 		}
@@ -1817,8 +1822,8 @@ public Action Command_ClusterBomb(int client)
 				DispatchKeyValue(ent, "model", g_sCanisterModel);						
 				SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
 				SetEntProp(ent, Prop_Send, "m_CollisionGroup", 1);
-				SetEntProp(ent, Prop_Send, "m_usSolidFlags", 12);
-				SetEntProp(ent, Prop_Send, "m_nSolidType", 6);
+				DispatchKeyValue(ent, "nodamageforces", "1");
+				DispatchKeyValue(ent, "spawnflags", "512");
 				SetEntProp(ent, Prop_Send, "m_iTeamNum", 3);
 				SetEntProp(ent, Prop_Send, "m_nSkin", 1);
 				DispatchSpawn(ent);
@@ -1855,6 +1860,8 @@ public Action SpawnClusters(Handle timer, any ent)
 			{					
 				DispatchKeyValue(ent2, "model", g_sBombletModel);	
 				SetEntPropEnt(ent2, Prop_Send, "m_hOwnerEntity", client);
+				DispatchKeyValue(ent2, "nodamageforces", "1");
+				DispatchKeyValue(ent2, "spawnflags", "512");
 				SetEntProp(ent2, Prop_Send, "m_nSkin", 1);
 				SetEntProp(ent2, Prop_Send, "m_iTeamNum", 3);
 				DispatchSpawn(ent2);
@@ -1881,7 +1888,7 @@ public Action ExplodeBomblet(Handle timer, any ent)
 		{
 			int tMag = GetConVarInt(g_hCV_hidden_bombletmagnitude);
 			SetEntProp(explosion, Prop_Data, "m_iMagnitude", tMag);
-			DispatchKeyValue(explosion, "spawnflags", "0");
+			DispatchKeyValue(explosion, "spawnflags", "32");
 			SetEntProp(explosion, Prop_Send, "m_iTeamNum", team);
 			SetEntPropEnt(explosion, Prop_Send, "m_hOwnerEntity", client);
 			//SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
@@ -1895,9 +1902,9 @@ public Action ExplodeBomblet(Handle timer, any ent)
 	}
 }
 
-bool TraceEntityFilterPlayer(int entity, int mask)
+bool TraceEntityFilterPlayer(int entity, int contentsMask)
 {
-	if (mask == -15)
+	if (contentsMask == -15)
 	{
 		LogToGame("WutFace");		
 	}
@@ -1905,14 +1912,14 @@ bool TraceEntityFilterPlayer(int entity, int mask)
 	return entity > MaxClients || !entity;
 }
 
-bool TraceRay_HitWorld(int entityhit, int mask) 
+bool TraceRay_HitWorld(int entity, int contentsMask) 
 {
-	if (mask == -15)
+	if (contentsMask == -15)
 	{
-		LogToGame("WutFace");
+		LogToGame("WutFace");		
 	}
 	
-	return entityhit == 0;
+	return entity == 0;
 }
 //creating a weapon
 bool CreateNamedItem(int client, int itemindex, char[] classname, int level, int quality)
