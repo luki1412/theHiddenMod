@@ -17,7 +17,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.20"
+#define PLUGIN_VERSION "1.21"
 
 //int gvars
 int g_iTheCurrentHidden = 0;
@@ -72,6 +72,7 @@ ConVar g_hCV_hidden_bombletmagnitude;
 ConVar g_hCV_hidden_bombletspreadvel;
 ConVar g_hCV_hidden_bombthrowspeed;
 ConVar g_hCV_hidden_bombdetonationdelay;
+ConVar g_hCV_hidden_bombignoreuser;
 Handle g_hWeaponEquip;
 Handle g_hGameConfig;
 //cvar globals
@@ -148,6 +149,7 @@ public void OnPluginStart()
 	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "60.0", "Spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
 	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "2000.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 10000.0);
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
+	g_hCV_hidden_bombignoreuser = CreateConVar("sm_thehidden_bombignoreuser", "0", "Sets whether the bomb should ignore the Hidden or not.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time til the Hidden dies without killing.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
@@ -461,7 +463,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			TF2_RemoveCondition(client, TFCond_Cloaked);
 			AddHiddenVisible(0.75);
 			
-			if (IsFakeClient(client) && GetRandomInt(0,10) == 0)
+			if (IsFakeClient(client) && GetRandomUInt(0,10) == 0)
 			{
 				HiddenBombTrigger();
 			}
@@ -1402,7 +1404,7 @@ int Client_GetRandom()
 		return clients[0];
 	}
 
-	int random = GetRandomInt(0, num-1);
+	int random = GetRandomUInt(0, num-1);
 	return clients[random];
 }
 //clients count
@@ -1891,7 +1893,12 @@ public Action ExplodeBomblet(Handle timer, any ent)
 			DispatchKeyValue(explosion, "spawnflags", "32");
 			SetEntProp(explosion, Prop_Send, "m_iTeamNum", team);
 			SetEntPropEnt(explosion, Prop_Send, "m_hOwnerEntity", client);
-			//SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
+			
+			if (GetConVarBool(g_hCV_hidden_bombignoreuser))
+			{
+				SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
+			}
+			
 			DispatchSpawn(explosion);
 			ActivateEntity(explosion);
 			
@@ -1998,10 +2005,14 @@ void Client_TakeDamage(int victim, int attacker, int damage, int dmg_type = DMG_
     } 
   } 
 }
+int GetRandomUInt(int min, int max)
+{
+	return RoundToFloor(GetURandomFloat() * (max - min + 1)) + min;
+}
 //pick a class
 int PickAClass()
 {
-	int cl = GetRandomInt(1,8);
+	int cl = GetRandomUInt(1,8);
 	
 	if (cl == 8)
 	{
