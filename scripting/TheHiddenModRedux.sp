@@ -4,6 +4,7 @@
 * Then modified and improved by atomic-penguin(Eric G. Wolfe) and Daniel Murray - https://forums.alliedmods.net/showthread.php?t=206742
 * Redux by luki1412
 */
+
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
@@ -17,7 +18,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.21"
+#define PLUGIN_VERSION "1.22"
 
 //int gvars
 int g_iTheCurrentHidden = 0;
@@ -25,7 +26,7 @@ int g_iHiddenCurrentHp;
 int g_iHiddenHpMax;
 int g_iForceNextHidden = 0;
 int g_iForceCommandHidden = 0;
-int g_iDamageToHidden[MAXPLAYERS+1] = 0;
+int g_iDamageToHidden[MAXPLAYERS+1] = {0, ...};
 //bool gvars
 bool g_bHiddenSticky;
 bool g_bPlaying = false; 
@@ -73,10 +74,12 @@ ConVar g_hCV_hidden_bombletspreadvel;
 ConVar g_hCV_hidden_bombthrowspeed;
 ConVar g_hCV_hidden_bombdetonationdelay;
 ConVar g_hCV_hidden_bombignoreuser;
+ConVar g_hCV_hidden_ghosts;
 Handle g_hWeaponEquip;
 Handle g_hGameConfig;
 //cvar globals
 int g_iCV_hidden_tauntdamage;
+bool g_bCV_hidden_ghosts = false;
 float g_fCV_hidden_stamina;
 float g_fCV_hidden_starvationtime;
 float g_fCV_hidden_bombtime;
@@ -153,7 +156,8 @@ public void OnPluginStart()
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time til the Hidden dies without killing.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
-
+	g_hCV_hidden_ghosts = CreateConVar("sm_thehidden_ghosts", "0", "Sets whether red should turn to ghosts after death.", FCVAR_NONE, true, 0.0, true, 1.0);
+    
 	g_fTickInterval = GetTickInterval(); // 0.014999 default
 	RegAdminCmd("sm_nexthidden", Cmd_NextHidden, ADMFLAG_CHEATS, "Forces a certain player to be the next Hidden, regardless of who wins the round");
 
@@ -264,6 +268,15 @@ public void OnMapStart()
 	PrecacheModel(g_sCanisterModel, true);
 	PrecacheModel(g_sBombletModel, true);
 	PrecacheSound(g_sBlipSound, true);
+	PrecacheModel("models/props_halloween/ghost.mdl", true);
+	PrecacheSound("vo/halloween_boo1.mp3", true);
+	PrecacheSound("vo/halloween_boo2.mp3", true);
+	PrecacheSound("vo/halloween_boo3.mp3", true);
+	PrecacheSound("vo/halloween_boo4.mp3", true);
+	PrecacheSound("vo/halloween_boo5.mp3", true);
+	PrecacheSound("vo/halloween_boo6.mp3", true);
+	PrecacheSound("vo/halloween_boo7.mp3", true);
+
 	g_iHaloSprite = PrecacheModel(g_sHaloSprite, true);
 	g_iBeamSprite = PrecacheModel(g_sBeamSprite, true);
 	
@@ -301,6 +314,7 @@ void LoadCvars()
 	g_fCV_hidden_visible_pounce = GetConVarFloat(g_hCV_hidden_visible_pounce);
 	g_fCV_hidden_visible_bomb = GetConVarFloat(g_hCV_hidden_visible_bomb);
 	g_iCV_hidden_tauntdamage = GetConVarInt(g_hCV_hidden_tauntdamage);
+	g_bCV_hidden_ghosts = GetConVarBool(g_hCV_hidden_ghosts);
 }
 //activate the mod
 void ActivatePlugin() 
@@ -541,9 +555,26 @@ public Action Cmd_join(int client, char[] cmd, int args)
 	{
 		char arg1[32];
 		GetCmdArg(1, arg1, sizeof(arg1));
-		
-		if (StrEqual(arg1, "spectator", true) || StrEqual(arg1, "red", true) || StrEqual(arg1, "spectate", true))
+
+		if (StrEqual(arg1, "red", true)) 
 		{
+			return Plugin_Continue;
+		}
+		else if (StrEqual(arg1, "spectator", true) || StrEqual(arg1, "spectate", true))
+		{
+			if (IsPlayerHere(client)) 
+			{
+				if (TF2_IsPlayerInCondition(client, TFCond_HalloweenInHell)) 
+				{
+					TF2_RemoveCondition(client, TFCond_HalloweenInHell);
+				}
+				
+				if (TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode)) 
+				{
+					TF2_RemoveCondition(client, TFCond_HalloweenGhostMode);
+				}
+			}
+
 			return Plugin_Continue;
 		}
 		else
@@ -558,10 +589,11 @@ public Action Cmd_join(int client, char[] cmd, int args)
 				PrintCenterText(client, "%t", "hidden_team2");
 				ChangeClientTeam(client, 2);
 				ShowVGUIPanel(client, "class_red");
-			}	
+			}
+
 			return Plugin_Handled;
-		}
-	}
+        }
+    }
 
 	return Plugin_Continue;
 }
@@ -700,6 +732,8 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 		{
 			RequestFrame(GiveHiddenPowers, client);
 			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 0);
+			SetVariantString("");
+			AcceptEntityInput(client, "SetCustomModel");
 		}
 		
 		if (IsFakeClient(client))
@@ -765,7 +799,9 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 				}
 			} 
 		}
-		
+
+		SetVariantString("");
+		AcceptEntityInput(client, "SetCustomModel");
 		SetEntProp(client, Prop_Send, "m_bGlowEnabled", 1);
 	}
 }
@@ -780,15 +816,20 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 	if (!g_bPlaying)
 	{
 		return;
-	}	
-	
+	}
+
 	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	
 	if (victim != g_iTheCurrentHidden)
 	{
 		SetEntProp(victim, Prop_Send, "m_bGlowEnabled", 0);
-		
+
+		if (TF2_IsPlayerInCondition(victim, TFCond_HalloweenGhostMode)) 
+		{   
+			RequestFrame(GhostFix, victim);
+		}
+
 		if (attacker == g_iTheCurrentHidden)
 		{
 			g_fHiddenInvisibility = g_fCV_hidden_starvationtime;
@@ -832,17 +873,25 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 							}
 						}
 					}
-					
+
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill", victim);
-					RequestFrame(Dissolve, victim);
+
+					if (!g_bCV_hidden_ghosts) 
+					{
+						RequestFrame(Dissolve, victim);
+					}
 				}
 				else
 				{
-					RequestFrame(GibRagdoll, victim);
+					if (!g_bCV_hidden_ghosts) 
+					{
+					   RequestFrame(GibRagdoll, victim);
+					}
+
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill2", victim);
 				}
 			}
-			
+
 			if (GetAliveEnemiesCount() <= 1)
 			{
 				g_iForceNextHidden = 0;
@@ -894,7 +943,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			}
 		} 
 	}
-	
+
 	return;
 }
 //spawn another ragdoll
@@ -922,6 +971,27 @@ public void GibRagdoll(int client)
 			DispatchSpawn(newragdoll);
 		}
 	}
+}
+//lets fix the ghost
+public void GhostFix(int client)
+{
+    RequestFrame(GhostFix2, client);
+}
+//one more frame delay to fix flying cosmetics
+public void GhostFix2(int client)
+{
+    if (IsPlayerHere(client)) 
+    {
+		SetEntProp(client, Prop_Send, "m_lifeState", 2);
+		SetVariantInt(2);
+		AcceptEntityInput(client, "SetForcedTauntCam");
+
+		SetVariantInt(1);
+		AcceptEntityInput(client, "SetCustomModelRotates");
+
+		SetVariantString("models/props_halloween/ghost.mdl");
+		AcceptEntityInput(client, "SetCustomModel");
+    }
 }
 //the game frame, less = better
 public void OnGameFrame()
@@ -1113,6 +1183,17 @@ public void arena_round_start(Handle event, const char[] name, bool dontBroadcas
 	Client_RespawnAll(true);
 	g_bPlaying = true;
 	g_bHiddenStarvation = false;
+
+	if (g_bCV_hidden_ghosts) 
+	{   
+		for (int client = 1; client <= MaxClients; client++) 
+		{
+			if (IsPlayerHereLoopCheck(client) && GetClientTeam(client) == 2 && IsPlayerAlive(client)) 
+			{
+				TF2_AddCondition(client, TFCond_HalloweenInHell, 999999.0, 0);
+			}
+		}
+	}
 }
 //a beacon for the hidden bot
 public Action Timer_Beacon(Handle timer, any client)
@@ -1193,17 +1274,21 @@ public void NewGame()
 	CreateTimer(1.0, Timer_DisableCps, _, TIMER_FLAG_NO_MAPCHANGE);
 	SelectHidden();
 
-	for (int n = 0; n <= MaxClients; n++) 
+	for (int n = 0; n <= MAXPLAYERS; n++) 
 	{
 		g_iDamageToHidden[n] = 0;
 	}
 	
-	Client_RespawnAll(false);	
+	RequestFrame(RespawnAll, _);	
 	
 	if (g_hTick == null)
 	{
 		g_hTick = CreateTimer(0.1, Timer_Tick, _, TIMER_REPEAT);
 	}
+}
+public void RespawnAll(int client)
+{
+    Client_RespawnAll(false);
 }
 //timer callback for resetting the hidden
 public Action Timer_ResetHidden(Handle timer) 
@@ -1232,6 +1317,7 @@ public Action Timer_Jumped(Handle timer, any data)
 public Action Timer_Win(Handle timer, any data) 
 {
 	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_botkill");
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsPlayerHereLoopCheck(i) && IsFakeClient(i) && IsPlayerAlive(i))
@@ -1282,7 +1368,7 @@ public Action Timer_Tick(Handle timer)
 	ShowHiddenHP();
 	return Plugin_Continue;
 }
-//force next hidden?
+//force next hidden command
 public Action Cmd_NextHidden(int client, int args) 
 {
 	if (!GetConVarBool(g_hCV_hidden_enabled)) 
@@ -1434,6 +1520,7 @@ int GetAliveEnemiesCount()
 			clients += 1;
 		}
 	}
+
 	return clients;
 }
 //select the hidden
