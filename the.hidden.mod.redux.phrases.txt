@@ -1,0 +1,195 @@
+"Phrases"
+{
+	"hidden_eng"
+	{
+		"en"		"{powderblue}You can't upgrade dispensers!"
+	}
+	"hidden_eng2"
+	{
+		"en"		"{powderblue}You can't upgrade teleporters!"
+	}
+	"hidden_eng3"
+	{
+		"en"		"{powderblue}You can't build sentries!"
+	}
+	"hidden_taunts"
+	{
+		"en"		"{powderblue}Taunts are disabled!"
+	}
+	"hidden_kill"
+	{
+		"#format"	"{1:N}"
+		"en"		"{crimson}The Hidden{powderblue} killed {crimson}{1}{powderblue} and ate his body to restore some health!"
+	}
+	"hidden_kill2"
+	{
+		"#format"	"{1:N}"
+		"en"		"{crimson}The Hidden{powderblue} killed {crimson}{1}{powderblue}!"
+	}
+	"hidden_win"
+	{
+		"en"		"{crimson}The Hidden{powderblue} killed the entire team {crimson}IRIS{powderblue}! The next {crimson}Hidden{powderblue} will be chosen randomly!"
+	}
+	"hidden_win2"
+	{
+		"en"		"{powderblue}Team {crimson}IRIS{powderblue} killed {crimson}the Hidden{powderblue}!"
+	}
+	"hidden_win3"
+	{
+		"en"		"{crimson}The Hidden{powderblue} starved to death. The next {crimson}Hidden{powderblue} will be chosen randomly!"
+	}
+	"hidden_win4"
+	{
+		"en"		"{crimson}The Hidden{powderblue} committed suicide. The next {crimson}Hidden{powderblue} will be chosen randomly!"
+	}
+	"hidden_winner"
+	{
+		"#format"	"{1:N}"
+		"en"		"{crimson}{1}{powderblue} dealt most damage to {crimson}the Hidden{powderblue} and will become the next {crimson}Hidden{powderblue}!"
+	}
+	"hidden_winner2"
+	{
+		"en"		"{powderblue}The next {crimson}Hidden{powderblue} will be chosen randomly!"
+	}
+	"hidden_start"
+	{
+		"en"		"{powderblue}Not enough players to start a new game!"
+	}
+	"hidden_botkill"
+	{
+		"en"		"{powderblue}Killing all bots in the first round."
+	}
+	"hidden_command"
+	{
+		"en"		"{powderblue}Usage: {crimson}/nexthidden{powderblue} <player>"
+	}
+	"hidden_command2"
+	{
+		"en"		"{powderblue}The player you selected isn't on RED or BLU."
+	}
+	"hidden_command3"
+	{
+		"#format"	"{1:N}"
+		"en"		"{powderblue}The next {crimson}Hidden{powderblue} will be {crimson}{1}{powderblue}, regardless of who wins the round."
+	}
+	"hidden_command4"
+	{
+		"#format"	"{1:N}"
+		"en"		"{powderblue}An admin forced {crimson}{1}{powderblue} to be the next {crimson}Hidden{powderblue}."
+	}
+	"hidden_command5"
+	{
+		"en"		"{powderblue}Invalid target."
+	}
+	//no colors
+	"hidden_hud"
+	{
+		"en"		"The Hidden's Health"
+	}
+	//no colors
+	"hidden_hud2"
+	{
+		"en"		"Your Health"
+	}
+	//no colors
+	"hidden_hud3"
+	{
+		"en"		"Stamina"
+	}
+	//no colors
+	"hidden_hud4"
+	{
+		"en"		"Cluster Bomb"
+	}
+	//no colors
+	"hidden_hud5"
+	{
+		"en"		"Hunger"
+	}
+	"hidden_team"
+	{
+		"en"		"{powderblue}You can't be on this team."
+	}
+	//no colors
+	"hidden_team2"
+	{
+		"en"		"You can't join that team! Switched to team IRIS."
+	}
+	//no colors
+	"hidden_class"
+	{
+		"en"		"You can't pick that class!"
+	}
+	//no colors
+	"hidden_class2"
+	{
+		"en"		"You can't change class on this team!"
+	}
+	"hidden_problem"
+	{
+		"en"		"{powderblue}There are too many entities on the map, can't spawn the bomb."
+	}
+	"hidden_problem2"
+	{
+		"en"		"{powderblue}You are too close to a wall or something like that."
+	}
+	"hidden_notify"
+	{
+		"en"		"{powderblue}You can type {crimson}/hiddenhelp{powderblue} in chat to open the help menu."
+	}
+	//no colors
+	"hidden_help"
+	{
+		"en"		"The Hidden mod is a 1vsALL mod. The Hidden's hp is based on \nthe amount of members of team IRIS. The person who deals most \ndamage to the Hidden will become the next Hidden. \nIf he isn't killed by team IRIS, the next Hidden is chosen randomly."
+	}
+	//no colors
+	"hidden_help2"
+	{
+		"en"		"As the Hidden, you are always invisible. The only time you become \nvisible is when you attack, get attacked or use your abilities. \nTo dash, aim up and press the attack2 button. \nYou will stick to the walls, if you dash to them while holding the button. \nYou can press jump or dash again to stop pouncing. Aim and press the reload \nbutton to throw your cluster bomb. Your own bombs can hurt you."
+	}
+	//no colors
+	"hidden_help2b"
+	{
+		"en"		"Each kill decreases your hunger. If you let hunger meter reach 100%%, \nyou will die. Knife kills that aren't backstabs, restore health. \nThe health you recover is based on victim's class. You take no fall damage. \nDont forget that you still have your sapper."
+	}
+	//no colors
+	"hidden_help3"
+	{
+		"en"		"Your objective is to kill the Hidden, before he kills you. \nYou can also win by making him starve to death. Listen to his footsteps \nand avoid his cluster bombs. He's always invisible, \nbut your weapons can reveal his position for short while. Staying in small \nrooms or hallways is not a good idea because of his cluster bomb. \nIt is not wise to go alone or stay in big groups."
+	}
+	//no colors
+	"hidden_help3b"
+	{
+		"en"		"Backstabs are instant kills, but they dont recover Hidden's health. \nButterknife kills recover Hidden's health. \nThe amount of health recovered changes based on the class of the victim."
+	}
+	//no colors
+	"hidden_menu"
+	{
+		"en"		"About the mod"
+	}
+	//no colors
+	"hidden_menu2"
+	{
+		"en"		"The Hidden and his powers"
+	}
+	//no colors
+	"hidden_menu3"
+	{
+		"en"		"Team IRIS and their options"
+	}
+	//no colors
+	"hidden_menu_control"
+	{
+		"en"		"Next"
+	}
+	//no colors
+	"hidden_menu_control2"
+	{
+		"en"		"Back"
+	}
+	//no colors
+	"hidden_menu_control3"
+	{
+		"en"		"Exit"
+	}
+}
