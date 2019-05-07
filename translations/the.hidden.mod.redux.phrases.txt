@@ -2,15 +2,15 @@
 {
 	"hidden_eng"
 	{
-		"en"		"{powderblue}You can't upgrade dispensers!"
+		"en"		"{powderblue}You can't upgrade dispensers! Metal refunded."
 	}
 	"hidden_eng2"
 	{
-		"en"		"{powderblue}You can't upgrade teleporters!"
+		"en"		"{powderblue}You can't upgrade teleporters! Metal refunded."
 	}
 	"hidden_eng3"
 	{
-		"en"		"{powderblue}You can't build sentries!"
+		"en"		"{powderblue}You can't build sentries! Metal refunded."
 	}
 	"hidden_taunts"
 	{
@@ -45,7 +45,7 @@
 	"hidden_winner"
 	{
 		"#format"	"{1:N}"
-		"en"		"{crimson}{1}{powderblue} dealt most damage to {crimson}the Hidden{powderblue} and will become the next {crimson}Hidden{powderblue}!"
+		"en"		"{crimson}{1}{powderblue} dealt the most damage to {crimson}the Hidden{powderblue} and will become the next {crimson}Hidden{powderblue}!"
 	}
 	"hidden_winner2"
 	{
@@ -140,7 +140,7 @@
 	//no colors
 	"hidden_help"
 	{
-		"en"		"The Hidden mod is a 1vsALL mod. The Hidden's hp is based on \nthe amount of members of team IRIS. The person who deals most \ndamage to the Hidden will become the next Hidden. \nIf he isn't killed by team IRIS, the next Hidden is chosen randomly."
+		"en"		"The Hidden mod is a 1vsALL mod. The Hidden's hp is based on \nthe amount of members of the IRIS team. The person who deals the most \ndamage to the Hidden will become the next Hidden. \nIf he isn't killed by team IRIS, the next Hidden is chosen randomly."
 	}
 	//no colors
 	"hidden_help2"
