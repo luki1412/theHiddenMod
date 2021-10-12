@@ -1282,9 +1282,10 @@ public Action Timer_DisableCps(Handle timer)
 	}
 
 	int logic = FindEntityByClassname(MaxClients+1, "tf_logic_arena");
+	
 	if (IsValidEntity(logic)) 
 	{
-		SetEntPropFloat(logic,Prop_Data,"m_flTimeToEnableCapPoint",2147483647.0);
+		SetEntPropFloat(logic,Prop_Data,"m_flTimeToEnableCapPoint",0.0);
 	}	
 }
 //enable control points
