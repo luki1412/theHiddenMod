@@ -1282,10 +1282,10 @@ public Action Timer_DisableCps(Handle timer)
 	}
 
 	int logic = FindEntityByClassname(MaxClients+1, "tf_logic_arena");
-	
+
 	if (IsValidEntity(logic)) 
 	{
-		SetEntPropFloat(logic,Prop_Data,"m_flTimeToEnableCapPoint",0.0);
+		SetEntPropFloat(logic, Prop_Data, "m_flTimeToEnableCapPoint", 0.0);
 	}	
 }
 //enable control points
@@ -1302,9 +1302,10 @@ public Action Timer_EnableCps(Handle timer)
 	}
 
 	int logic = FindEntityByClassname(MaxClients+1, "tf_logic_arena");
+
 	if (IsValidEntity(logic)) 
 	{
-		SetEntPropFloat(logic,Prop_Data,"m_flTimeToEnableCapPoint",60.0);
+		SetEntPropFloat(logic, Prop_Data, "m_flTimeToEnableCapPoint", 60.0);
 	}
 }
 //timer callback for new game
