@@ -7,9 +7,9 @@
 		{
 			"WeaponEquip"
 			{
-				"windows"	"265"
-				"linux"		"266"
-				"mac"		"266"
+				"windows"	"268"
+				"linux"		"269"
+				"mac"		"269"
 			}
 		}
 	}
