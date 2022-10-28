@@ -16,6 +16,10 @@
 	{
 		"en"		"{powderblue}Taunts are disabled!"
 	}
+	"hidden_weapon_changed"
+	{
+		"en"		"{powderblue}Some of your weapons have been replaced or removed."
+	}
 	"hidden_kill"
 	{
 		"#format"	"{1:N}"
@@ -137,6 +141,10 @@
 	{
 		"en"		"{powderblue}You can type {crimson}/hiddenhelp{powderblue} in chat to open the help menu."
 	}
+	"hidden_notify2"
+	{
+		"en"		"{powderblue}You can type {crimson}/hiddenpref{powderblue} in chat to open the Hidden preference menu."
+	}
 	//no colors
 	"hidden_help"
 	{
@@ -161,6 +169,11 @@
 	"hidden_help3b"
 	{
 		"en"		"Backstabs are instant kills, but they dont recover Hidden's health. \nButterknife kills recover Hidden's health. \nThe amount of health recovered changes based on the class of the victim."
+	}
+	//no colors
+	"hidden_menu_title"
+	{
+		"en"		"The Hidden Mod Redux help menu"
 	}
 	//no colors
 	"hidden_menu"
@@ -191,5 +204,41 @@
 	"hidden_menu_control3"
 	{
 		"en"		"Exit"
+	}
+	//no colors
+	"hidden_pref"
+	{
+		"en"		"Do you ever want to be the Hidden?"
+	}
+	//no colors
+	"hidden_pref_control"
+	{
+		"en"		"Yes"
+	}
+	//no colors
+	"hidden_pref_control2"
+	{
+		"en"		"No"
+	}
+	"hidden_pref_change_success"
+	{
+		"en"		"{powderblue}Changing your The {crimson}Hidden{powderblue} preference was successful."
+	}
+	"hidden_pref_change_failure"
+	{
+		"en"		"{powderblue}Changing your The {crimson}Hidden{powderblue} preference failed."
+	}
+	"hidden_pref_disabled"
+	{
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} preference functionality is currently disabled."
+	}
+	"hidden_pref_no_hidden"
+	{
+		"en"		"{powderblue}No player prefers to be The {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
+	}
+	"hidden_pref_winner_no_hidden"
+	{
+		"#format"	"{1:N}"
+		"en"		"{crimson}{1}{powderblue} dealt the most damage to the {crimson}Hidden{powderblue}, however they prefer not to be The {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
 	}
 }

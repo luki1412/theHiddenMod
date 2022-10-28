@@ -10,6 +10,8 @@
 #include <tf2_stocks>
 #include <sdkhooks>
 #include <morecolors>
+#include <clients>
+#include <dbi>
 #undef REQUIRE_EXTENSIONS
 #tryinclude <SteamWorks>
 #define REQUIRE_EXTENSIONS
@@ -18,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.25"
+#define PLUGIN_VERSION "1.30"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -36,6 +38,8 @@ bool g_bTimerDie;
 bool g_bTimerDieTick;
 bool g_bLateLoad;
 bool g_bJumped;
+bool g_bHiddenPref[MAXPLAYERS+1] = {true, ...};
+bool g_bHiddenPrefFunctionality = true;
 //float gvars
 float g_fHiddenStamina;
 float g_fHiddenInvisibility;
@@ -48,6 +52,8 @@ Handle g_hHiddenHudHp;
 Handle g_hHiddenHudStamina;
 Handle g_hHiddenHudClusterBomb;
 Handle g_hHiddenHudHunger;
+Database g_hHiddenPrefDB;
+ConVar g_hCV_hidden_pref;
 ConVar g_hCV_hidden_version;
 ConVar g_hCV_hidden_enabled;
 ConVar g_hCV_hidden_taunts;
@@ -57,7 +63,7 @@ ConVar g_hCV_hidden_visible_damage;
 ConVar g_hCV_hidden_visible_jarate; 
 ConVar g_hCV_hidden_visible_pounce;
 ConVar g_hCV_hidden_visible_bomb;
-ConVar g_hCV_hidden_allowpyroweapons;
+ConVar g_hCV_hidden_replacepyroweapons;
 ConVar g_hCV_hidden_allowheavyweapons;
 ConVar g_hCV_hidden_allowsentries;
 ConVar g_hCV_hidden_allowdispenserupgrade;
@@ -133,7 +139,7 @@ public void OnPluginStart()
 	g_hCV_hidden_enabled = CreateConVar("sm_thehidden_enabled", "1", "Enables/disables the Hidden Mod Redux.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_taunts = CreateConVar("sm_thehidden_allowtaunts", "1", "Enables/disables taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden while taunting.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_allowpyroweapons = CreateConVar("sm_thehidden_allowpyroprimaries", "0", "Set whether pyros are allowed to use primary weapons.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's weapons should be replace by Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowteleporterupgrade = CreateConVar("sm_thehidden_allowteleporterupgrade", "1", "Set whether engineers are allowed to upgrade teleporters.", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -154,15 +160,32 @@ public void OnPluginStart()
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
 	g_hCV_hidden_bombignoreuser = CreateConVar("sm_thehidden_bombignoreuser", "0", "Sets whether the bomb should ignore the Hidden or not.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
-	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing.", FCVAR_NONE, true, 10.0, true, 1000.0);
+	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing anyone.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
-	g_hCV_hidden_ghosts = CreateConVar("sm_thehidden_ghosts", "0", "Sets whether red players should turn to ghosts after death.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_ghosts = CreateConVar("sm_thehidden_ghosts", "0", "Sets whether red players should turn into ghosts after death.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_pref = CreateConVar("sm_thehidden_preferenceenabled", "1", "Sets whether The Hidden preference should be enabled.", FCVAR_NONE, true, 0.0, true, 1.0);
     
 	g_fTickInterval = GetTickInterval(); // 0.014999 default
-	
+
 	RegAdminCmd("sm_nexthidden", Cmd_NextHidden, ADMFLAG_CHEATS, "Forces a certain player to be the next Hidden, regardless of who wins the round.");
 	RegConsoleCmd("sm_hiddenhelp", Cmd_HiddenHelp, "Shows the help menu for the Hidden mod redux.");
+	RegConsoleCmd("sm_hiddenpref", Cmd_HiddenPref, "Shows the Hidden preference menu.");
 	
+	char errorMessage[255];
+	g_hHiddenPrefDB = SQLite_UseDatabase("thehiddenmod", errorMessage, sizeof(errorMessage));
+
+	if(g_hHiddenPrefDB == null) {
+		LogError("Failed to connect to the sqlite database for preferences. The Hidden preferences are disabled. Error: %s", errorMessage);
+		g_bHiddenPrefFunctionality = false;
+	} else {
+		if(!CheckTablePresence()) {
+			if(!CreatePreferenceTable()) {
+				LogError("Failed to create the default table inside the sqlite database for preferences. The Hidden preferences are disabled.");
+				g_bHiddenPrefFunctionality = false;
+			}
+		}
+	}
+
 	#if defined _SteamWorks_Included
 	g_bSteamWorks = LibraryExists("SteamWorks");
 	#endif
@@ -588,7 +611,7 @@ public Action Cmd_join(int client, char[] cmd, int args)
 		return Plugin_Handled;
 	}
 
-	if (Client_TotalBlue() == 1)
+	if (Client_Total(2) == 1)
 	{
 		char arg1[32];
 		GetCmdArg(1, arg1, sizeof(arg1));
@@ -706,7 +729,7 @@ public Action OnTakeDamage(int client, int &attacker, int &inflictor, float &dam
 	
 	return Plugin_Continue;
 }
-//a player got hurt, only care about the hidden
+//a player will get hurt, only care about the hidden
 public void player_hurt_pre(Handle event, const char[] name, bool dontBroadcast) 
 {
 	if (!GetConVarBool(g_hCV_hidden_enabled)) 
@@ -821,12 +844,19 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			return;
 		}
 		
-		if ((!GetConVarBool(g_hCV_hidden_allowpyroweapons) && class == TFClass_Pyro) || (!GetConVarBool(g_hCV_hidden_allowheavyweapons) && class == TFClass_Heavy)) 
+		if (!GetConVarBool(g_hCV_hidden_allowheavyweapons) && class == TFClass_Heavy) 
 		{
 			TF2_RemoveWeaponSlot(client, 0);
 			EquipPlayerWeapon(client, GetPlayerWeaponSlot(client, 2));
 		}
 		
+		if (GetConVarBool(g_hCV_hidden_replacepyroweapons) && class == TFClass_Pyro) 
+		{
+			TF2_RemoveWeaponSlot(client, 0);
+			CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
+			CPrintToChat(client,"{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_weapon_changed");
+		}
+
 		if (class == TFClass_Sniper && !GetConVarBool(g_hCV_hidden_allowrazorback))
 		{
 			int ent = MaxClients+1;
@@ -970,7 +1000,12 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			if (top > 0 && g_iDamageToHidden[top] > 0)
 			{
 				g_iForceNextHidden = GetClientUserId(top);
-				CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_winner", top);
+				if(GetHiddenPreferenceStatus(true) && (g_bHiddenPref[top] == false)) {
+					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_winner_no_hidden", top);
+					g_iForceNextHidden = 0;
+				} else {
+					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_winner", top);
+				}	
 			}
 			else
 			{
@@ -1286,7 +1321,9 @@ public Action Timer_DisableCps(Handle timer)
 	if (IsValidEntity(logic)) 
 	{
 		SetEntPropFloat(logic, Prop_Data, "m_flTimeToEnableCapPoint", 0.0);
-	}	
+	}
+
+	return Plugin_Continue;
 }
 //enable control points
 public Action Timer_EnableCps(Handle timer) 
@@ -1307,6 +1344,8 @@ public Action Timer_EnableCps(Handle timer)
 	{
 		SetEntPropFloat(logic, Prop_Data, "m_flTimeToEnableCapPoint", 60.0);
 	}
+
+	return Plugin_Continue;
 }
 //timer callback for new game
 public void NewGame() 
@@ -1339,21 +1378,26 @@ public void RespawnAll(int client)
 public Action Timer_ResetHidden(Handle timer) 
 {
 	ResetHidden();
+	return Plugin_Continue;
 }
 //timer callback for respawn
 public Action Timer_Respawn(Handle timer, any data) 
 {
 	TF2_RespawnPlayer(data);
+	return Plugin_Continue;
 }
-//notify everyone that they can use the help command
+//notify everyone that they can use the help command and pref command
 public Action NotifyPlayers(Handle timer) 
 {
 	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify");
+	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
+	return Plugin_Continue;
 }
 //jump check
 public Action Timer_Jumped(Handle timer, any data)
 {
 	g_bJumped = false;
+	return Plugin_Continue;
 }
 //kill all bots at the start
 public Action Timer_Win(Handle timer, any data) 
@@ -1367,6 +1411,8 @@ public Action Timer_Win(Handle timer, any data)
 			Client_TakeDamage(i, i, 99999, DMG_CRUSH, "");
 		}
 	}
+
+	return Plugin_Continue;
 }
 //ragdol dissolve timer
 public void Dissolve(int client) 
@@ -1444,6 +1490,133 @@ public Action Cmd_NextHidden(int client, int args)
 	CReplyToCommand(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_command3", target);
 	return Plugin_Handled;
 }
+//cmd for pref menu
+public Action Cmd_HiddenPref(int client, int args)
+{
+	if (!GetConVarBool(g_hCV_hidden_enabled)) 
+	{
+		return Plugin_Continue;
+	}
+	
+	if (GetHiddenPreferenceStatus(false)) {
+		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_disabled");
+		return Plugin_Continue;
+	}
+
+	if (IsPlayerHere(client))
+	{
+		char buffer[256];
+		Panel panel = new Panel();
+		Format(buffer,256,"%t","hidden_pref");
+		panel.SetTitle(buffer);
+		Format(buffer,256,"%t%s","hidden_pref_control", g_bHiddenPref[client] == true ? " ✓" : "");
+		panel.DrawItem(buffer);
+		Format(buffer,256,"%t%s","hidden_pref_control2", g_bHiddenPref[client] == false ? " ✓" : "");
+		panel.DrawItem(buffer);
+		Format(buffer,10,"%t","hidden_menu_control3");
+		panel.DrawItem(buffer,ITEMDRAW_CONTROL);
+		panel.Send(client, PerfPanelHandler, 30);
+	 
+		delete panel;
+	}
+
+	return Plugin_Handled;
+}
+//pref menu handler
+public int PerfPanelHandler(Menu menu, MenuAction action, int client, int selection)
+{
+	if (action == MenuAction_Select && IsPlayerHere(client))
+	{
+		switch (selection)
+		{
+			case 1: {
+				SetClientHiddenPreference(client,1);
+				g_bHiddenPref[client] = true;
+			}
+			case 2: {
+				SetClientHiddenPreference(client,0);
+				g_bHiddenPref[client] = false;
+			}
+		}
+	}
+
+	return 0;
+}
+public bool CheckTablePresence()
+{
+	DBResultSet query = SQL_Query(g_hHiddenPrefDB, "SELECT name FROM sqlite_master WHERE type='table' AND name='preference';");
+	if (query == null)
+	{
+		char error[255];
+		SQL_GetError(g_hHiddenPrefDB, error, sizeof(error));
+		LogError("Failed to check whether the Hidden preference table exists (error: %s)", error);
+		return false;
+	} 
+	else 
+	{
+		/* Process results here! */
+		bool result = false;
+		if(query.RowCount == 1) {
+			result = true;
+		}
+		/* Free the Handle */
+		delete query;
+		return result;
+	}
+}
+
+public bool CreatePreferenceTable()
+{
+	return SQL_FastQuery(g_hHiddenPrefDB, "CREATE TABLE 'preference' ('STEAM_ID' TEXT NOT NULL,	'Preference' INTEGER NOT NULL DEFAULT 1, PRIMARY KEY('STEAM_ID'))");
+}
+//set pref
+public bool SetClientHiddenPreference(int client, int preference)
+{
+	char steamId[32];
+	GetClientAuthId(client, AuthId_Steam2, steamId, sizeof(steamId));
+	char queryString[100];
+	Format(queryString, sizeof(queryString), "REPLACE INTO preference VALUES ('%s',%i)", steamId, preference);
+
+	bool success = SQL_FastQuery(g_hHiddenPrefDB, queryString);
+	if(success == true) {
+		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_change_success");
+		return true;
+	} else {
+		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_change_failure");
+		char error[255];
+		SQL_GetError(g_hHiddenPrefDB, error, sizeof(error));
+		LogError("Failed to set the Hidden preference (error: %s)", error);
+		return false;
+	}
+}
+//get pref
+public bool GetClientHiddenPreference(int client)
+{
+	char steamId[32];
+	GetClientAuthId(client, AuthId_Steam2, steamId, sizeof(steamId));
+	char queryString[100];
+	Format(queryString, sizeof(queryString), "SELECT Preference FROM preference WHERE STEAM_ID = '%s'",steamId);
+
+	DBResultSet query = SQL_Query(g_hHiddenPrefDB, queryString);
+	if (query == null)
+	{
+		char error[255];
+		SQL_GetError(g_hHiddenPrefDB, error, sizeof(error));
+		LogError("Failed to query the Hidden preference (error: %s)", error);
+		return true;
+	} 
+	else 
+	{
+		/* Process results here! */
+		bool result = true;
+		if (SQL_FetchRow(query)) {
+			result = SQL_FetchInt(query, 0) == 1 ? true : false;
+		}
+		/* Free the Handle */
+		delete query;
+		return result;
+	}
+}
 //cmd for help menu
 public Action Cmd_HiddenHelp(int client, int args)
 {
@@ -1455,9 +1628,10 @@ public Action Cmd_HiddenHelp(int client, int args)
 	if (IsPlayerHere(client))
 	{
 		char buffer[256];
-		Format(buffer,256,"%t","hidden_menu");
 		Panel panel = new Panel();
-		panel.SetTitle("The Hidden Mod Redux help menu");
+		Format(buffer,256,"%t","hidden_menu_title");
+		panel.SetTitle(buffer);
+		Format(buffer,256,"%t","hidden_menu");
 		panel.DrawItem(buffer);
 		Format(buffer,256,"%t","hidden_menu2");
 		panel.DrawItem(buffer);
@@ -1473,14 +1647,13 @@ public Action Cmd_HiddenHelp(int client, int args)
 	return Plugin_Handled;
 }
 //help menu handler
-public int PanelHandler1(Menu menu, MenuAction action, int param1, int param2)
+public int PanelHandler1(Menu menu, MenuAction action, int client, int selection)
 {
-	int client = param1;
 	char buffer[512];
 
 	if (action == MenuAction_Select && IsPlayerHere(client))
 	{
-		switch (param2)
+		switch (selection)
 		{
 			case 1: {
 				Panel panel = new Panel();
@@ -1529,14 +1702,15 @@ public int PanelHandler1(Menu menu, MenuAction action, int param1, int param2)
 			}
 		}
 	}
+
+	return 0;
 }
 
-public int PanelHandler2(Menu menu, MenuAction action, int param1, int param2)
+public int PanelHandler2(Menu menu, MenuAction action, int client, int selection)
 {
-	int client = param1;
 	char buffer[256];
 	
-	if (action == MenuAction_Select && param2 != 2 && IsPlayerHere(client))
+	if (action == MenuAction_Select && selection != 2 && IsPlayerHere(client))
 	{
 		Format(buffer,256,"%t","hidden_menu");
 		Panel panel = new Panel();
@@ -1552,14 +1726,15 @@ public int PanelHandler2(Menu menu, MenuAction action, int param1, int param2)
 	 
 		delete panel;
 	}
+
+	return 0;
 }
 
-public int PanelHandler3(Menu menu, MenuAction action, int param1, int param2)
+public int PanelHandler3(Menu menu, MenuAction action, int client, int selection)
 {
-	int client = param1;
 	char buffer[512];
 	
-	if (param2 != 2 && IsPlayerHere(client))
+	if (selection != 2 && IsPlayerHere(client))
 	{
 		Panel panel = new Panel();
 		Format(buffer,512,"%t","hidden_menu2");
@@ -1575,14 +1750,15 @@ public int PanelHandler3(Menu menu, MenuAction action, int param1, int param2)
 	 
 		delete panel;
 	}
+
+	return 0;
 }
 
-public int PanelHandler4(Menu menu, MenuAction action, int param1, int param2)
+public int PanelHandler4(Menu menu, MenuAction action, int client, int selection)
 {
-	int client = param1;
 	char buffer[512];
 	
-	if (param2 != 2 && IsPlayerHere(client))
+	if (selection != 2 && IsPlayerHere(client))
 	{
 		Panel panel = new Panel();
 		Format(buffer,512,"%t","hidden_menu3");
@@ -1598,6 +1774,8 @@ public int PanelHandler4(Menu menu, MenuAction action, int param1, int param2)
 	 
 		delete panel;
 	}
+
+	return 0;
 }
 //pause the invisibility
 void AddHiddenVisible(float value) 
@@ -1616,12 +1794,25 @@ bool IsArenaMap()
 public void OnClientDisconnect(int client) 
 {
 	g_iDamageToHidden[client] = 0;
-	
+	g_bHiddenPref[client] = true;
+
 	if (client == g_iTheCurrentHidden) 
 	{
 		ResetHidden();
 	}
 }
+//read prefs
+public void OnClientAuthorized(int client, const char[] auth)
+{
+	if(IsClientConnected(client)) {
+		if(IsFakeClient(client)) {
+			g_bHiddenPref[client] = true;
+		} else {
+			g_bHiddenPref[client] = GetClientHiddenPreference(client);
+		}	
+	}
+}
+
 //is there enough players? can we play?
 bool CanPlay() 
 {
@@ -1637,30 +1828,13 @@ bool CanPlay()
 	}
 }
 //number of players
-int Client_Total()
+int Client_Total(int divider = 1)
 {
 	int numClients = 0;
 	
 	for(int client = 1; client <= MaxClients; client++) {
 		
-		if (!IsClientConnected(client) || !IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= 1 ) 
-		{
-			continue;
-		}
-		
-		numClients++;
-	}
-	
-	return numClients;
-}
-//players on blue
-int Client_TotalBlue()
-{
-	int numClients = 0;
-	
-	for(int client = 1; client <= MaxClients; client++) {
-		
-		if (!IsClientConnected(client) || !IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) != 3 ) 
+		if (!IsClientConnected(client) || !IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= divider ) 
 		{
 			continue;
 		}
@@ -1674,7 +1848,19 @@ int Client_TotalBlue()
 int Client_GetRandom()
 {
 	int[] clients = new int[MaxClients];
-	int num = Client_Get(clients);
+	bool prefEnabled = GetHiddenPreferenceStatus(true);
+	int num;
+	if(prefEnabled == true) {
+		num = Client_Get(clients, true);
+
+		if (num == 0) 
+		{
+			CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_no_hidden");
+			num = Client_Get(clients, false);
+		}
+	} else {
+		num = Client_Get(clients, false);
+	}
 
 	if (num == 0) 
 	{
@@ -1689,13 +1875,13 @@ int Client_GetRandom()
 	return clients[random];
 }
 //clients count
-int Client_Get(int[] clients)
+int Client_Get(int[] clients, bool considerPref)
 {
 	int x = 0;
 	
 	for(int client = 1; client <= MaxClients; client++) 
 	{
-		if (IsPlayerHereLoopCheck(client) && GetClientTeam(client) >= 2) 
+		if (IsPlayerHereLoopCheck(client) && (GetClientTeam(client) >= 2) && ((considerPref == true && g_bHiddenPref[client] == true) || considerPref == false)) 
 		{
 			clients[x++] = client;
 		}
@@ -1742,7 +1928,7 @@ void SelectHidden()
 	{
 		int forced = GetClientOfUserId(g_iForceNextHidden);
 		
-		if (IsPlayerHere(forced) && GetClientTeam(forced) > 1 ) 
+		if (IsPlayerHere(forced) && (GetClientTeam(forced) > 1) && (((GetHiddenPreferenceStatus(true) == true) && (g_bHiddenPref[forced] == true)) || (GetHiddenPreferenceStatus(false) == false))) 
 		{
 			g_iTheCurrentHidden = forced;
 			g_iForceNextHidden = 0;
@@ -1756,8 +1942,14 @@ void SelectHidden()
 	
 	CreateTimer(3.0, NotifyPlayers, _, TIMER_FLAG_NO_MAPCHANGE );
 }
+
+bool GetHiddenPreferenceStatus(bool status) 
+{
+	return ((g_bHiddenPrefFunctionality == status) && (GetConVarBool(g_hCV_hidden_pref) == status));
+}
+
 //dash/superjump
-bool HiddenSuperJump() 
+void HiddenSuperJump() 
 {
 	if (g_iTheCurrentHidden == 0 || HiddenStick() != -1 || g_fHiddenStamina < 5.0 || g_bJumped) 
 	{
@@ -1838,7 +2030,7 @@ void HiddenUnstick()
 	if (GetEntityMoveType(g_iTheCurrentHidden) == MOVETYPE_NONE) 
 	{
 		SetEntityMoveType(g_iTheCurrentHidden, MOVETYPE_WALK);
-		float vel[3] = 0.0;
+		float vel[3] = {0.0, ...};
 		TeleportEntity(g_iTheCurrentHidden, NULL_VECTOR, NULL_VECTOR, vel);
 	}
 }
@@ -1910,6 +2102,11 @@ void ShowHiddenHP()
 		}
 	} 
 }
+//hide hidden's hud
+void Client_SetHideHud(int client, int flags)
+{
+	SetEntProp(client, Prop_Send, "m_iHideHUD", flags);
+}
 //give hidden powers
 void GiveHiddenPowers(int i) 
 {
@@ -1940,11 +2137,6 @@ void RemoveHiddenPowers(int i)
 	TF2_RemoveCondition(i, TFCond_Cloaked);
 	SetEntPropFloat(i, Prop_Send, "m_flMaxspeed", 320.0);
 	Client_SetHideHud(i, 0);
-}
-//hide hidden's hud
-void Client_SetHideHud(int client, int flags)
-{
-	SetEntProp(client, Prop_Send, "m_iHideHUD", flags);
 }
 //reset the hidden
 void ResetHidden() 
@@ -2136,6 +2328,8 @@ public Action SpawnClusters(Handle timer, any ent)
 			}			
 		}
 	}
+
+	return Plugin_Handled;
 }
 //explode each cluster/bomblet
 public Action ExplodeBomblet(Handle timer, any ent)
@@ -2188,6 +2382,8 @@ public Action ExplodeBomblet(Handle timer, any ent)
 			CreateTimer(0.4, StopPush, physexplosion, TIMER_FLAG_NO_MAPCHANGE);
 		}		
 	}
+
+	return Plugin_Handled;
 }
 
 public Action StopPush(Handle timer, any ent)
@@ -2196,6 +2392,8 @@ public Action StopPush(Handle timer, any ent)
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
+
+	return Plugin_Continue;
 }
 
 bool TraceEntityFilterPlayer(int entity, int contentsMask)
@@ -2219,8 +2417,7 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 	
 	char entclass[64];
 	GetEntityNetClass(weapon, entclass, sizeof(entclass));	
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_iItemDefinitionIndex"), itemindex);
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_iItemDefinitionIndex"), itemindex);	
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityLevel"), level);
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityQuality"), quality);	
 	
@@ -2231,8 +2428,11 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 		SetEntDataArray(weapon, FindSendPropInfo(entclass, "m_aBuildableObjectTypes"), buildables, 4);
 	}
 	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
+
 	if (!DispatchSpawn(weapon)) 
 	{
+		AcceptEntityInput(weapon, "Kill");
 		return false;
 	}
 
