@@ -16,10 +16,6 @@
 	{
 		"en"		"{powderblue}Taunts are disabled!"
 	}
-	"hidden_weapon_changed"
-	{
-		"en"		"{powderblue}Some of your weapons have been replaced or removed."
-	}
 	"hidden_kill"
 	{
 		"#format"	"{1:N}"
@@ -240,5 +236,10 @@
 	{
 		"#format"	"{1:N}"
 		"en"		"{crimson}{1}{powderblue} dealt the most damage to the {crimson}Hidden{powderblue}, however they prefer not to be The {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
+	}
+	"hidden_pref_changed_after_winning"
+	{
+		"#format"	"{1:N}"
+		"en"		"{crimson}{1}{powderblue} have changed their the {crimson}Hidden{powderblue} preference after winning. Selecting the next {crimson}Hidden{powderblue} at random."
 	}
 }

@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.30"
+#define PLUGIN_VERSION "1.32"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -175,13 +175,17 @@ public void OnPluginStart()
 	g_hHiddenPrefDB = SQLite_UseDatabase("thehiddenmod", errorMessage, sizeof(errorMessage));
 
 	if(g_hHiddenPrefDB == null) {
-		LogError("Failed to connect to the sqlite database for preferences. The Hidden preferences are disabled. Error: %s", errorMessage);
+		LogError("Failed to connect to the sqlite database for preferences. The Hidden preferences cannot be enabled. Error: %s", errorMessage);
 		g_bHiddenPrefFunctionality = false;
 	} else {
 		if(!CheckTablePresence()) {
+			LogMessage("No default table inside the sqlite database for preferences present. Attempting to create one now.");
 			if(!CreatePreferenceTable()) {
-				LogError("Failed to create the default table inside the sqlite database for preferences. The Hidden preferences are disabled.");
+				LogError("Failed to create the default table inside the sqlite database for preferences. The Hidden preferences cannot be enabled.");
 				g_bHiddenPrefFunctionality = false;
+			} else {
+				LogMessage("The default table inside the sqlite database for preferences was successfully created.");
+				g_bHiddenPrefFunctionality = true;
 			}
 		}
 	}
@@ -843,7 +847,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 			return;
 		}
-		
+
 		if (!GetConVarBool(g_hCV_hidden_allowheavyweapons) && class == TFClass_Heavy) 
 		{
 			TF2_RemoveWeaponSlot(client, 0);
@@ -852,9 +856,19 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 		
 		if (GetConVarBool(g_hCV_hidden_replacepyroweapons) && class == TFClass_Pyro) 
 		{
-			TF2_RemoveWeaponSlot(client, 0);
-			CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
-			CPrintToChat(client,"{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_weapon_changed");
+			int wep = GetPlayerWeaponSlot(client, 0);
+			int wepIndex = GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
+
+			if(wepIndex != 1178) 
+			{
+				TF2_RemoveWeaponSlot(client, 0);
+				CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
+				int iAmmoType = GetEntProp(wep, Prop_Send, "m_iPrimaryAmmoType");
+
+				if(iAmmoType != -1) {
+					SetEntProp(client, Prop_Data, "m_iAmmo", 40, _, iAmmoType);
+				}
+			}
 		}
 
 		if (class == TFClass_Sniper && !GetConVarBool(g_hCV_hidden_allowrazorback))
@@ -1000,10 +1014,14 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			if (top > 0 && g_iDamageToHidden[top] > 0)
 			{
 				g_iForceNextHidden = GetClientUserId(top);
-				if(GetHiddenPreferenceStatus(true) && (g_bHiddenPref[top] == false)) {
+
+				if(IsHiddenPreferenceEnabled() && (g_bHiddenPref[top] == false)) 
+				{
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_winner_no_hidden", top);
 					g_iForceNextHidden = 0;
-				} else {
+				} 
+				else 
+				{
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_winner", top);
 				}	
 			}
@@ -1390,7 +1408,10 @@ public Action Timer_Respawn(Handle timer, any data)
 public Action NotifyPlayers(Handle timer) 
 {
 	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify");
-	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
+	if(IsHiddenPreferenceEnabled()) 
+	{
+		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
+	}
 	return Plugin_Continue;
 }
 //jump check
@@ -1498,7 +1519,7 @@ public Action Cmd_HiddenPref(int client, int args)
 		return Plugin_Continue;
 	}
 	
-	if (GetHiddenPreferenceStatus(false)) {
+	if (!IsHiddenPreferenceEnabled()) {
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_disabled");
 		return Plugin_Continue;
 	}
@@ -1848,9 +1869,10 @@ int Client_Total(int divider = 1)
 int Client_GetRandom()
 {
 	int[] clients = new int[MaxClients];
-	bool prefEnabled = GetHiddenPreferenceStatus(true);
 	int num;
-	if(prefEnabled == true) {
+
+	if (IsHiddenPreferenceEnabled()) 
+	{
 		num = Client_Get(clients, true);
 
 		if (num == 0) 
@@ -1858,7 +1880,9 @@ int Client_GetRandom()
 			CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_no_hidden");
 			num = Client_Get(clients, false);
 		}
-	} else {
+	} 
+	else 
+	{
 		num = Client_Get(clients, false);
 	}
 
@@ -1921,31 +1945,33 @@ void SelectHidden()
 	{
 		g_iTheCurrentHidden = forcedcommand;
 		g_iForceCommandHidden = 0;
-		g_iForceNextHidden = 0;
 		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_command4", forcedcommand);
 	}
 	else
 	{
-		int forced = GetClientOfUserId(g_iForceNextHidden);
+		int lastWinner = GetClientOfUserId(g_iForceNextHidden);
 		
-		if (IsPlayerHere(forced) && (GetClientTeam(forced) > 1) && (((GetHiddenPreferenceStatus(true) == true) && (g_bHiddenPref[forced] == true)) || (GetHiddenPreferenceStatus(false) == false))) 
+		if (IsPlayerHere(lastWinner) && (GetClientTeam(lastWinner) > 1)) 
 		{
-			g_iTheCurrentHidden = forced;
-			g_iForceNextHidden = 0;
+			if (IsHiddenPreferenceEnabled() && (g_bHiddenPref[lastWinner] == false)) {
+				CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_changed_after_winning", lastWinner);
+				g_iTheCurrentHidden = Client_GetRandom();
+			} else {
+				g_iTheCurrentHidden = lastWinner;
+			}
 		} 
 		else 
 		{
 			g_iTheCurrentHidden = Client_GetRandom();
-			g_iForceNextHidden = 0;
 		}
 	}
-	
+	g_iForceNextHidden = 0;
 	CreateTimer(3.0, NotifyPlayers, _, TIMER_FLAG_NO_MAPCHANGE );
 }
 
-bool GetHiddenPreferenceStatus(bool status) 
+bool IsHiddenPreferenceEnabled() 
 {
-	return ((g_bHiddenPrefFunctionality == status) && (GetConVarBool(g_hCV_hidden_pref) == status));
+	return ((g_bHiddenPrefFunctionality == true) && (GetConVarBool(g_hCV_hidden_pref) == true)) ? true : false;
 }
 
 //dash/superjump
@@ -2240,7 +2266,7 @@ public void cvhook_enabled(Handle cvar, const char[] oldVal, const char[] newVal
 //cbomb and bomblets
 public Action Command_ClusterBomb(int client)
 {
-	if (IsPlayerHere(client) && IsPlayerAlive(client))
+	if (IsPlayerHere(client) && IsPlayerAlive(client) && g_iTheCurrentHidden != 0)
 	{
 		if (GetMaxEntities() - GetEntityCount() < 200)
 		{
@@ -2304,6 +2330,9 @@ public Action SpawnClusters(Handle timer, any ent)
 		EmitAmbientSound(g_sDetonationSound, pos, SOUND_FROM_WORLD, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, 0.0);
 		int client = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
 		AcceptEntityInput(ent, "Kill");
+		if (g_iTheCurrentHidden == 0) {
+			return Plugin_Handled;
+		}
 		float ang[3];
 		
 		for(int i = 0; i < GetConVarInt(g_hCV_hidden_bombletcount); i++)
@@ -2342,6 +2371,9 @@ public Action ExplodeBomblet(Handle timer, any ent)
 		int client = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
 		int team = GetEntProp(client, Prop_Send, "m_iTeamNum");
 		AcceptEntityInput(ent, "Kill");
+		if (g_iTheCurrentHidden == 0) {
+			return Plugin_Handled;
+		}
 		int explosion = CreateEntityByName("env_explosion");
 		
 		if (IsValidEntity(explosion))
