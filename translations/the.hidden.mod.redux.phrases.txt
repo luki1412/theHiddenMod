@@ -19,41 +19,41 @@
 	"hidden_kill"
 	{
 		"#format"	"{1:N}"
-		"en"		"{crimson}The Hidden{powderblue} killed {crimson}{1}{powderblue} and ate his body to restore some health!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} killed {crimson}{1}{powderblue} and ate their body to restore some health!"
 	}
 	"hidden_kill2"
 	{
 		"#format"	"{1:N}"
-		"en"		"{crimson}The Hidden{powderblue} killed {crimson}{1}{powderblue}!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} killed {crimson}{1}{powderblue}!"
 	}
 	"hidden_win"
 	{
-		"en"		"{crimson}The Hidden{powderblue} killed the entire team {crimson}IRIS{powderblue}! The next {crimson}Hidden{powderblue} will be chosen randomly!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} killed the entire team {crimson}IRIS{powderblue}! the next {crimson}Hidden{powderblue} will be chosen at random!"
 	}
 	"hidden_win2"
 	{
-		"en"		"{powderblue}Team {crimson}IRIS{powderblue} killed {crimson}the Hidden{powderblue}!"
+		"en"		"{powderblue}Team {crimson}IRIS{powderblue} killed the {crimson}Hidden{powderblue}!"
 	}
 	"hidden_win3"
 	{
-		"en"		"{crimson}The Hidden{powderblue} starved to death. The next {crimson}Hidden{powderblue} will be chosen randomly!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} starved to death. The next {crimson}Hidden{powderblue} will be chosen at random!"
 	}
 	"hidden_win4"
 	{
-		"en"		"{crimson}The Hidden{powderblue} committed suicide. The next {crimson}Hidden{powderblue} will be chosen randomly!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} committed suicide. The next {crimson}Hidden{powderblue} will be chosen at random!"
 	}
 	"hidden_winner"
 	{
 		"#format"	"{1:N}"
-		"en"		"{crimson}{1}{powderblue} dealt the most damage to {crimson}the Hidden{powderblue} and will become the next {crimson}Hidden{powderblue}!"
+		"en"		"{crimson}{1}{powderblue} dealt the most damage to the {crimson}Hidden{powderblue} and they will become the next {crimson}Hidden{powderblue}!"
 	}
 	"hidden_winner2"
 	{
-		"en"		"{powderblue}The next {crimson}Hidden{powderblue} will be chosen randomly!"
+		"en"		"{powderblue}The next {crimson}Hidden{powderblue} will be chosen at random."
 	}
 	"hidden_start"
 	{
-		"en"		"{powderblue}Not enough players to start a new game!"
+		"en"		"{powderblue}Not enough players to start a new game."
 	}
 	"hidden_botkill"
 	{
@@ -65,7 +65,7 @@
 	}
 	"hidden_command2"
 	{
-		"en"		"{powderblue}The player you selected isn't on RED or BLU."
+		"en"		"{powderblue}The player you selected isn't on either team!"
 	}
 	"hidden_command3"
 	{
@@ -123,7 +123,7 @@
 	//no colors
 	"hidden_class2"
 	{
-		"en"		"You can't change class on this team!"
+		"en"		"You can't change your class on this team!"
 	}
 	"hidden_problem"
 	{
@@ -131,7 +131,7 @@
 	}
 	"hidden_problem2"
 	{
-		"en"		"{powderblue}You are too close to a wall or something like that."
+		"en"		"{powderblue}You are too close to a wall or something similar."
 	}
 	"hidden_notify"
 	{
@@ -139,7 +139,7 @@
 	}
 	"hidden_notify2"
 	{
-		"en"		"{powderblue}You can type {crimson}/hiddenpref{powderblue} in chat to open the Hidden preference menu."
+		"en"		"{powderblue}You can type {crimson}/hiddenpref{powderblue} in chat to open the {crimson}Hidden{powderblue} preference menu."
 	}
 	//no colors
 	"hidden_help"
@@ -149,12 +149,12 @@
 	//no colors
 	"hidden_help2"
 	{
-		"en"		"As the Hidden, you are always invisible. The only time you become \nvisible is when you attack, get attacked or use your abilities. \nTo dash, aim up and press the attack2 button. \nYou will stick to the walls, if you dash to them while holding the button. \nYou can press jump or dash again to stop pouncing. Aim and press the reload \nbutton to throw your cluster bomb. Your own bombs can hurt you."
+		"en"		"As the Hidden, you are always invisible. You only become visible, \nwhen you attack, get attacked or use your abilities. \nTo dash, aim up and press the attack2 button. \nYou will stick to the walls, if you dash to them while holding the button. \nYou can press jump or dash again to stop pouncing. Aim and press the reload \nbutton to throw your cluster bomb. Your own bombs can hurt you."
 	}
 	//no colors
 	"hidden_help2b"
 	{
-		"en"		"Each kill decreases your hunger. If you let hunger meter reach 100%%, \nyou will die. Knife kills that aren't backstabs, restore health. \nThe health you recover is based on victim's class. You take no fall damage. \nDont forget that you still have your sapper."
+		"en"		"Each kill decreases your hunger. If you let the hunger meter reach 100%%, \nyou will die. Knife kills that aren't backstabs, restore health. \nThe health you recover is based on victim's class. You take no fall damage. \nDont forget that you still have your sapper."
 	}
 	//no colors
 	"hidden_help3"
@@ -164,7 +164,7 @@
 	//no colors
 	"hidden_help3b"
 	{
-		"en"		"Backstabs are instant kills, but they dont recover Hidden's health. \nButterknife kills recover Hidden's health. \nThe amount of health recovered changes based on the class of the victim."
+		"en"		"Backstabs are instant kills, but they dont recover the Hidden's health. \nButterknife kills recover the Hidden's health. \nThe amount of health recovered changes based on the class of the victim."
 	}
 	//no colors
 	"hidden_menu_title"
@@ -218,11 +218,11 @@
 	}
 	"hidden_pref_change_success"
 	{
-		"en"		"{powderblue}Changing your The {crimson}Hidden{powderblue} preference was successful."
+		"en"		"{powderblue}Changing your preference for the {crimson}Hidden{powderblue} was successful."
 	}
 	"hidden_pref_change_failure"
 	{
-		"en"		"{powderblue}Changing your The {crimson}Hidden{powderblue} preference failed."
+		"en"		"{powderblue}Changing your preference for the {crimson}Hidden{powderblue} failed."
 	}
 	"hidden_pref_disabled"
 	{
@@ -230,12 +230,12 @@
 	}
 	"hidden_pref_no_hidden"
 	{
-		"en"		"{powderblue}No player prefers to be The {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
+		"en"		"{powderblue}No player prefers to be the {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
 	}
 	"hidden_pref_winner_no_hidden"
 	{
 		"#format"	"{1:N}"
-		"en"		"{crimson}{1}{powderblue} dealt the most damage to the {crimson}Hidden{powderblue}, however they prefer not to be The {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
+		"en"		"{crimson}{1}{powderblue} dealt the most damage to the {crimson}Hidden{powderblue}, however they prefer not to be the {crimson}Hidden{powderblue}. Selecting the next {crimson}Hidden{powderblue} at random."
 	}
 	"hidden_pref_changed_after_winning"
 	{

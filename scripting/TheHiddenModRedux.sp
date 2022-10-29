@@ -29,6 +29,7 @@ int g_iHiddenHpMax;
 int g_iForceNextHidden;
 int g_iForceCommandHidden;
 int g_iDamageToHidden[MAXPLAYERS+1];
+int g_iResourceEntity;
 //bool gvars
 bool g_bHiddenSticky;
 bool g_bPlaying; 
@@ -70,7 +71,6 @@ ConVar g_hCV_hidden_allowdispenserupgrade;
 ConVar g_hCV_hidden_allowteleporterupgrade;
 ConVar g_hCV_hidden_allowrazorback;
 ConVar g_hCV_hidden_hpperplayer;
-ConVar g_hCV_hidden_hpperkill;
 ConVar g_hCV_hidden_hpbase;
 ConVar g_hCV_hidden_stamina;
 ConVar g_hCV_hidden_starvationtime;
@@ -139,7 +139,7 @@ public void OnPluginStart()
 	g_hCV_hidden_enabled = CreateConVar("sm_thehidden_enabled", "1", "Enables/disables the Hidden Mod Redux.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_taunts = CreateConVar("sm_thehidden_allowtaunts", "1", "Enables/disables taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden while taunting.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's weapons should be replace by Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's primary weapons should be replaced with Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowteleporterupgrade = CreateConVar("sm_thehidden_allowteleporterupgrade", "1", "Set whether engineers are allowed to upgrade teleporters.", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -151,7 +151,6 @@ public void OnPluginStart()
 	g_hCV_hidden_visible_bomb = CreateConVar("sm_thehidden_visiblebomb", "1.5", "How much time is the Hidden visible for, after throwing the cluster bomb.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_hpbase = CreateConVar("sm_thehidden_hpbase", "300", "Amount of hp used for calculating the Hidden's starting/max hp.", FCVAR_NONE, true, 1.0, true, 10000.0);
 	g_hCV_hidden_hpperplayer = CreateConVar("sm_thehidden_hpincreaseperplayer", "70", "This amount of hp, multiplied by the number of players, plus the base hp, equals The Hidden's hp.", FCVAR_NONE, true, 0.0, true, 1000.0);
-	g_hCV_hidden_hpperkill = CreateConVar("sm_thehidden_hpincreaseperkill", "50", "Amount of hp the Hidden gets back after he kills a player. This value changes based on victim's class.", FCVAR_NONE, true, 0.0, true, 1000.0);
 	g_hCV_hidden_forcebotsclass = CreateConVar("sm_thehidden_forcebotsclass", "1", "Force bots to play as snipers only.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_bombletcount = CreateConVar("sm_thehidden_bombletcount", "10", "Amount of bomb clusters(bomblets) inside a cluster bomb.", FCVAR_NONE, true, 1.0, true, 30.0);
 	g_hCV_hidden_bombletmagnitude = CreateConVar("sm_thehidden_bombletmagnitude", "20.0", "Magnitude of a bomblet.", FCVAR_NONE, true, 1.0, true, 1000.0);
@@ -313,6 +312,7 @@ public void OnConfigsExecuted()
 	SetConVarInt(FindConVar("tf_playergib"), 0);
 	SetConVarInt(FindConVar("tf_bot_reevaluate_class_in_spawnroom"), 0);
 	SetConVarString(FindConVar("tf_bot_force_class"), "");
+	g_iResourceEntity = GetPlayerResourceEntity();
 }
 //attempt to activate the plugin on mapstart, change game and precache sounds and models
 public void OnMapStart() 
@@ -978,45 +978,20 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 		if (attacker == g_iTheCurrentHidden)
 		{
 			g_fHiddenInvisibility = g_fCV_hidden_starvationtime;
-			int hpperkill = GetConVarInt(g_hCV_hidden_hpperkill);
 			int customkill = GetEventInt(event, "customkill");
 			int weaponi = GetEventInt(event, "weaponid");
 			
 			if (IsPlayerHere(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
 			{
 				if (customkill != TF_CUSTOM_BACKSTAB && weaponi == TF_WEAPON_KNIFE)
-				{				
-					TFClassType classv = TF2_GetPlayerClass(victim);
+				{
+					int hpperkill = GetEntProp(g_iResourceEntity, Prop_Send, "m_iMaxHealth", _, g_iTheCurrentHidden) / 3;
 					
-					switch (classv)
+					g_iHiddenCurrentHp += hpperkill; 
+					
+					if (g_iHiddenCurrentHp > g_iHiddenHpMax) 
 					{
-						case TFClass_Scout, TFClass_Sniper, TFClass_Engineer:
-						{
-							g_iHiddenCurrentHp += hpperkill; 
-							
-							if (g_iHiddenCurrentHp > g_iHiddenHpMax) 
-							{
-								g_iHiddenCurrentHp = g_iHiddenHpMax;
-							}			
-						}
-						case TFClass_Heavy, TFClass_Soldier:
-						{
-							g_iHiddenCurrentHp += hpperkill+20;
-							
-							if (g_iHiddenCurrentHp > g_iHiddenHpMax) 
-							{
-								g_iHiddenCurrentHp = g_iHiddenHpMax;
-							}
-						}
-						default:
-						{
-							g_iHiddenCurrentHp += hpperkill+10;
-							
-							if (g_iHiddenCurrentHp > g_iHiddenHpMax) 
-							{
-								g_iHiddenCurrentHp = g_iHiddenHpMax;
-							}
-						}
+						g_iHiddenCurrentHp = g_iHiddenHpMax;
 					}
 
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill", victim);
