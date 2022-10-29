@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.32"
+#define PLUGIN_VERSION "1.33"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -174,16 +174,23 @@ public void OnPluginStart()
 	char errorMessage[255];
 	g_hHiddenPrefDB = SQLite_UseDatabase("thehiddenmod", errorMessage, sizeof(errorMessage));
 
-	if(g_hHiddenPrefDB == null) {
+	if (g_hHiddenPrefDB == null) 
+	{
 		LogError("Failed to connect to the sqlite database for preferences. The Hidden preferences cannot be enabled. Error: %s", errorMessage);
 		g_bHiddenPrefFunctionality = false;
-	} else {
-		if(!CheckTablePresence()) {
+	} 
+	else 
+	{
+		if (!CheckTablePresence()) 
+		{
 			LogMessage("No default table inside the sqlite database for preferences present. Attempting to create one now.");
-			if(!CreatePreferenceTable()) {
+			if (!CreatePreferenceTable()) 
+			{
 				LogError("Failed to create the default table inside the sqlite database for preferences. The Hidden preferences cannot be enabled.");
 				g_bHiddenPrefFunctionality = false;
-			} else {
+			} 
+			else 
+			{
 				LogMessage("The default table inside the sqlite database for preferences was successfully created.");
 				g_bHiddenPrefFunctionality = true;
 			}
@@ -268,15 +275,29 @@ public void OnLibraryAdded(const char[] name)
 	}
 	
 }
-#endif
 //if SteamWorks isnt running anymore
-#if defined _SteamWorks_Included
 public void OnLibraryRemoved(const char[] name) 
 {
 	if (strcmp(name, "SteamWorks", false) == 0) 
 	{
 		g_bSteamWorks = false;
 	}
+}
+//changing the game in server browser
+void SetGameDescription() 
+{
+	char gameDesc[64];
+	
+	if (GetConVarBool(g_hCV_hidden_enabled)) 
+	{
+		Format(gameDesc, sizeof(gameDesc), "The Hidden Mod Redux");
+	} 
+	else 
+	{
+		gameDesc = "Team Fortress";
+	}
+	
+	SteamWorks_SetGameDescription(gameDesc);
 }
 #endif
 //change some tf2 cvars
@@ -329,11 +350,6 @@ public void OnMapEnd()
 	{
 		DeactivatePlugin();
 	}
-}
-// Hook when player takes damage for max damage calc
-public void OnClientPutInServer(int client)
-{
-	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage); 
 }
 //load these only when the game starts
 void LoadCvars()
@@ -461,6 +477,37 @@ void DeactivatePlugin()
 	}
 	#endif
 }
+// Hook when player takes damage for max damage calc
+public void OnClientPutInServer(int client)
+{
+	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage); 
+}
+//remove the hidden powers on disconnect
+public void OnClientDisconnect(int client) 
+{
+	g_iDamageToHidden[client] = 0;
+	g_bHiddenPref[client] = true;
+
+	if (client == g_iTheCurrentHidden) 
+	{
+		ResetHidden();
+	}
+}
+//read prefs
+public void OnClientAuthorized(int client, const char[] auth)
+{
+	if (IsClientConnected(client)) 
+	{
+		if (IsFakeClient(client)) 
+		{
+			g_bHiddenPref[client] = true;
+		} 
+		else 
+		{
+			g_bHiddenPref[client] = GetClientHiddenPreference(client);
+		}	
+	}
+}
 //block some buildings upgrades
 public void player_upgradedobject(Handle event, const char[] name, bool dontBroadcast)
 {
@@ -475,7 +522,9 @@ public void player_upgradedobject(Handle event, const char[] name, bool dontBroa
 	int metaloff = FindDataMapInfo(client, "m_iAmmo") + (3 * 4);
 	int upgrademetalcost = GetEntProp(objectid, Prop_Send, "m_iUpgradeMetalRequired");
 	int clientsmetal = GetEntData(client, metaloff, 4) + upgrademetalcost;
-	if (clientsmetal > 200) {
+
+	if (clientsmetal > 200) 
+	{
 		clientsmetal = 200;
 	}
 	
@@ -512,7 +561,9 @@ public void player_builtobject(Handle event, const char[] name, bool dontBroadca
 	int obj = GetEntProp(objectid, Prop_Send, "m_iObjectType");
 	int metaloff = FindDataMapInfo(client, "m_iAmmo") + (3 * 4);
 	int clientsmetal = GetEntData(client, metaloff, 4) + 125;
-	if (clientsmetal > 200) {
+
+	if (clientsmetal > 200) 
+	{
 		clientsmetal = 200;
 	}
 	
@@ -859,13 +910,14 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			int wep = GetPlayerWeaponSlot(client, 0);
 			int wepIndex = GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
 
-			if(wepIndex != 1178) 
+			if (wepIndex != 1178) 
 			{
 				TF2_RemoveWeaponSlot(client, 0);
 				CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
 				int iAmmoType = GetEntProp(wep, Prop_Send, "m_iPrimaryAmmoType");
 
-				if(iAmmoType != -1) {
+				if (iAmmoType != -1) 
+				{
 					SetEntProp(client, Prop_Data, "m_iAmmo", 40, _, iAmmoType);
 				}
 			}
@@ -1015,7 +1067,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			{
 				g_iForceNextHidden = GetClientUserId(top);
 
-				if(IsHiddenPreferenceEnabled() && (g_bHiddenPref[top] == false)) 
+				if (IsHiddenPreferenceEnabled() && (g_bHiddenPref[top] == false)) 
 				{
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_winner_no_hidden", top);
 					g_iForceNextHidden = 0;
@@ -1256,6 +1308,14 @@ public void TF2_OnConditionAdded(int client, TFCond condition)
 		}
 	}
 }
+//pause the invisibility
+void AddHiddenVisible(float value) 
+{
+	if (g_fHiddenVisible < value) 
+	{
+		g_fHiddenVisible = value;
+	}
+}
 //someone won, reset the hidden
 public void teamplay_round_win(Handle event, const char[] name, bool dontBroadcast) 
 {
@@ -1366,7 +1426,7 @@ public Action Timer_EnableCps(Handle timer)
 	return Plugin_Continue;
 }
 //timer callback for new game
-public void NewGame() 
+void NewGame() 
 {
 	if (g_iTheCurrentHidden != 0) 
 	{
@@ -1408,7 +1468,7 @@ public Action Timer_Respawn(Handle timer, any data)
 public Action NotifyPlayers(Handle timer) 
 {
 	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify");
-	if(IsHiddenPreferenceEnabled()) 
+	if (IsHiddenPreferenceEnabled()) 
 	{
 		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
 	}
@@ -1519,7 +1579,8 @@ public Action Cmd_HiddenPref(int client, int args)
 		return Plugin_Continue;
 	}
 	
-	if (!IsHiddenPreferenceEnabled()) {
+	if (!IsHiddenPreferenceEnabled()) 
+	{
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_disabled");
 		return Plugin_Continue;
 	}
@@ -1563,9 +1624,10 @@ public int PerfPanelHandler(Menu menu, MenuAction action, int client, int select
 
 	return 0;
 }
-public bool CheckTablePresence()
+//does the preference sql table exist
+bool CheckTablePresence()
 {
-	DBResultSet query = SQL_Query(g_hHiddenPrefDB, "SELECT name FROM sqlite_master WHERE type='table' AND name='preference';");
+	DBResultSet query = SQL_Query(g_hHiddenPrefDB, "SELECT name FROM sqlite_master WHERE type='table' AND name='preference'");
 	if (query == null)
 	{
 		char error[255];
@@ -1577,7 +1639,8 @@ public bool CheckTablePresence()
 	{
 		/* Process results here! */
 		bool result = false;
-		if(query.RowCount == 1) {
+		if (query.RowCount == 1) 
+		{
 			result = true;
 		}
 		/* Free the Handle */
@@ -1585,13 +1648,13 @@ public bool CheckTablePresence()
 		return result;
 	}
 }
-
-public bool CreatePreferenceTable()
+//create the preference sql table
+bool CreatePreferenceTable()
 {
 	return SQL_FastQuery(g_hHiddenPrefDB, "CREATE TABLE 'preference' ('STEAM_ID' TEXT NOT NULL,	'Preference' INTEGER NOT NULL DEFAULT 1, PRIMARY KEY('STEAM_ID'))");
 }
 //set pref
-public bool SetClientHiddenPreference(int client, int preference)
+bool SetClientHiddenPreference(int client, int preference)
 {
 	char steamId[32];
 	GetClientAuthId(client, AuthId_Steam2, steamId, sizeof(steamId));
@@ -1599,10 +1662,13 @@ public bool SetClientHiddenPreference(int client, int preference)
 	Format(queryString, sizeof(queryString), "REPLACE INTO preference VALUES ('%s',%i)", steamId, preference);
 
 	bool success = SQL_FastQuery(g_hHiddenPrefDB, queryString);
-	if(success == true) {
+	if (success == true) 
+	{
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_change_success");
 		return true;
-	} else {
+	} 
+	else 
+	{
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_change_failure");
 		char error[255];
 		SQL_GetError(g_hHiddenPrefDB, error, sizeof(error));
@@ -1611,7 +1677,7 @@ public bool SetClientHiddenPreference(int client, int preference)
 	}
 }
 //get pref
-public bool GetClientHiddenPreference(int client)
+bool GetClientHiddenPreference(int client)
 {
 	char steamId[32];
 	GetClientAuthId(client, AuthId_Steam2, steamId, sizeof(steamId));
@@ -1630,7 +1696,8 @@ public bool GetClientHiddenPreference(int client)
 	{
 		/* Process results here! */
 		bool result = true;
-		if (SQL_FetchRow(query)) {
+		if (SQL_FetchRow(query)) 
+		{
 			result = SQL_FetchInt(query, 0) == 1 ? true : false;
 		}
 		/* Free the Handle */
@@ -1798,42 +1865,11 @@ public int PanelHandler4(Menu menu, MenuAction action, int client, int selection
 
 	return 0;
 }
-//pause the invisibility
-void AddHiddenVisible(float value) 
-{
-	if (g_fHiddenVisible < value) 
-	{
-		g_fHiddenVisible = value;
-	}
-}
 //is this an arena map?
 bool IsArenaMap() 
 {
 	return FindEntityByClassname(MaxClients+1, "tf_logic_arena") > -1;
 }
-//remove the hidden powers on disconnect
-public void OnClientDisconnect(int client) 
-{
-	g_iDamageToHidden[client] = 0;
-	g_bHiddenPref[client] = true;
-
-	if (client == g_iTheCurrentHidden) 
-	{
-		ResetHidden();
-	}
-}
-//read prefs
-public void OnClientAuthorized(int client, const char[] auth)
-{
-	if(IsClientConnected(client)) {
-		if(IsFakeClient(client)) {
-			g_bHiddenPref[client] = true;
-		} else {
-			g_bHiddenPref[client] = GetClientHiddenPreference(client);
-		}	
-	}
-}
-
 //is there enough players? can we play?
 bool CanPlay() 
 {
@@ -1848,12 +1884,81 @@ bool CanPlay()
 		return false;
 	}
 }
+//enable or disable the plugin - cvar changed
+public void cvhook_enabled(Handle cvar, const char[] oldVal, const char[] newVal) 
+{
+	if (GetConVarBool(g_hCV_hidden_enabled) && IsArenaMap()) 
+	{
+		ActivatePlugin();
+	} 
+	else 
+	{
+		DeactivatePlugin();
+	}
+}
+//respawn everyone according to the plan
+void Client_RespawnAll(bool Notify) 
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if (IsPlayerHereLoopCheck(i))
+		{
+			switch (GetClientTeam(i))
+			{
+				case 0,1:
+				{
+					continue;
+				}
+				case 2:
+				{
+					if (i == g_iTheCurrentHidden)
+					{
+						SetEntProp(i, Prop_Send, "m_lifeState", 2);
+						ChangeClientTeam(i, 3);
+						TF2_SetPlayerClass(i, TFClass_Spy);
+						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+
+						if (Notify)
+						{
+							CPrintToChat(i, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_team");
+						}
+					}
+				}
+				case 3:
+				{
+					if (i != g_iTheCurrentHidden)
+					{
+						SetEntProp(i, Prop_Send, "m_lifeState", 2);
+						ChangeClientTeam(i, 2);
+						
+						if (IsFakeClient(i) && g_bCV_hidden_forcebotsclass)
+						{
+							TF2_SetPlayerClass(i, TFClass_Sniper);
+						}
+						else
+						{
+							TF2_SetPlayerClass(i, view_as<TFClassType>(PickAClass()));
+						}
+						
+						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+
+						if (Notify)
+						{
+							CPrintToChat(i, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_team");
+						}
+					}
+				}
+			}
+		}
+	}
+}
 //number of players
 int Client_Total(int divider = 1)
 {
 	int numClients = 0;
 	
-	for(int client = 1; client <= MaxClients; client++) {
+	for(int client = 1; client <= MaxClients; client++) 
+	{
 		
 		if (!IsClientConnected(client) || !IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= divider ) 
 		{
@@ -1913,6 +2018,18 @@ int Client_Get(int[] clients, bool considerPref)
 
 	return x;
 }
+//pick a random class
+int PickAClass()
+{
+	int cl = GetRandomUInt(1,8);
+	
+	if (cl == 8)
+	{
+		cl = 9;
+	}
+	
+	return cl;	
+}
 //how many enemies left?
 int GetAliveEnemiesCount() 
 {
@@ -1953,10 +2070,13 @@ void SelectHidden()
 		
 		if (IsPlayerHere(lastWinner) && (GetClientTeam(lastWinner) > 1)) 
 		{
-			if (IsHiddenPreferenceEnabled() && (g_bHiddenPref[lastWinner] == false)) {
+			if (IsHiddenPreferenceEnabled() && (g_bHiddenPref[lastWinner] == false)) 
+			{
 				CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_pref_changed_after_winning", lastWinner);
 				g_iTheCurrentHidden = Client_GetRandom();
-			} else {
+			} 
+			else 
+			{
 				g_iTheCurrentHidden = lastWinner;
 			}
 		} 
@@ -1968,12 +2088,11 @@ void SelectHidden()
 	g_iForceNextHidden = 0;
 	CreateTimer(3.0, NotifyPlayers, _, TIMER_FLAG_NO_MAPCHANGE );
 }
-
+//is hidden preference enabled and working
 bool IsHiddenPreferenceEnabled() 
 {
 	return ((g_bHiddenPrefFunctionality == true) && (GetConVarBool(g_hCV_hidden_pref) == true)) ? true : false;
 }
-
 //dash/superjump
 void HiddenSuperJump() 
 {
@@ -2060,16 +2179,6 @@ void HiddenUnstick()
 		TeleportEntity(g_iTheCurrentHidden, NULL_VECTOR, NULL_VECTOR, vel);
 	}
 }
-//give vision
-void GiveHiddenVision(int i) 
-{
-	OverlayCommand(i, "effects/combine_binocoverlay");
-}
-//remove it
-void RemoveHiddenVision(int i) 
-{
-	OverlayCommand(i, "\"\"");
-}
 //hud stuff
 void ShowHiddenHP() 
 {
@@ -2128,41 +2237,86 @@ void ShowHiddenHP()
 		}
 	} 
 }
-//hide hidden's hud
+//create a weapon
+bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0, int quality = 6)
+{
+	int weapon = CreateEntityByName(classname);
+	
+	if (!IsValidEntity(weapon))
+	{
+		return false;
+	}
+	
+	char entclass[64];
+	GetEntityNetClass(weapon, entclass, sizeof(entclass));	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_iItemDefinitionIndex"), itemindex);	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityLevel"), level);
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityQuality"), quality);	
+	
+	if (itemindex == 735) 
+	{
+		SetEntData(weapon, FindSendPropInfo(entclass, "m_iObjectType"), 3);
+		SetEntData(weapon, FindDataMapInfo(weapon, "m_iSubType"), 3);
+		int buildables[4] = {0,0,0,1};
+		SetEntDataArray(weapon, FindSendPropInfo(entclass, "m_aBuildableObjectTypes"), buildables, 4);
+	}
+	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
+
+	if (!DispatchSpawn(weapon)) 
+	{
+		AcceptEntityInput(weapon, "Kill");
+		return false;
+	}
+
+	SDKCall(g_hWeaponEquip, client, weapon);
+	return true;
+}
+//give vision
+void GiveHiddenVision(int client) 
+{
+	OverlayCommand(client, "effects/combine_binocoverlay");
+}
+//remove vision
+void RemoveHiddenVision(int client) 
+{
+	OverlayCommand(client, "\"\"");
+}
+//set hidden's hud
 void Client_SetHideHud(int client, int flags)
 {
 	SetEntProp(client, Prop_Send, "m_iHideHUD", flags);
 }
 //give hidden powers
-void GiveHiddenPowers(int i) 
+void GiveHiddenPowers(int client) 
 {
-	if (!i) 
+	if (!client) 
 	{
 		return;
 	}
 	
-	TF2_RemoveWeaponSlot(i, 0); // Revolver
-	TF2_RemoveWeaponSlot(i, 1); // Sapper	
-	TF2_RemoveWeaponSlot(i, 2); // Knife
+	TF2_RemoveWeaponSlot(client, 0); // Revolver
+	TF2_RemoveWeaponSlot(client, 1); // Sapper	
+	TF2_RemoveWeaponSlot(client, 2); // Knife
 	
-	if (!IsFakeClient(i))
+	if (!IsFakeClient(client))
 	{
-		Client_SetHideHud(i, ( 1<<3 ));
-		GiveHiddenVision(i);
-		TF2_RemoveWeaponSlot(i, 3); // Disguise Kit
+		Client_SetHideHud(client, ( 1<<3 ));
+		GiveHiddenVision(client);
+		TF2_RemoveWeaponSlot(client, 3); // Disguise Kit
 	}
 
-	TF2_RemoveWeaponSlot(i, 4); // Invisibility Watch
-	CreateNamedItem(i, "tf_weapon_knife", 4,  1, 0);
-	CreateNamedItem(i, "tf_weapon_builder", 735, 1, 0);
+	TF2_RemoveWeaponSlot(client, 4); // Invisibility Watch
+	CreateNamedItem(client, "tf_weapon_knife", 4,  1, 0);
+	CreateNamedItem(client, "tf_weapon_builder", 735, 1, 0);
 }
 //remove hidden's powers
-void RemoveHiddenPowers(int i) 
+void RemoveHiddenPowers(int client) 
 {
-	RemoveHiddenVision(i);
-	TF2_RemoveCondition(i, TFCond_Cloaked);
-	SetEntPropFloat(i, Prop_Send, "m_flMaxspeed", 320.0);
-	Client_SetHideHud(i, 0);
+	RemoveHiddenVision(client);
+	TF2_RemoveCondition(client, TFCond_Cloaked);
+	SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", 320.0);
+	Client_SetHideHud(client, 0);
 }
 //reset the hidden
 void ResetHidden() 
@@ -2183,62 +2337,6 @@ void OverlayCommand(int client, char[] overlay)
 		ClientCommand(client, "r_screenoverlay %s", overlay);
 	}
 }
-//respawn everyone according to the plan
-void Client_RespawnAll(bool Notify) 
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if (IsPlayerHereLoopCheck(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case 0,1:
-				{
-					continue;
-				}
-				case 2:
-				{
-					if (i == g_iTheCurrentHidden)
-					{
-						SetEntProp(i, Prop_Send, "m_lifeState", 2);
-						ChangeClientTeam(i, 3);
-						TF2_SetPlayerClass(i, TFClass_Spy);
-						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
-
-						if (Notify)
-						{
-							CPrintToChat(i, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_team");
-						}
-					}
-				}
-				case 3:
-				{
-					if (i != g_iTheCurrentHidden)
-					{
-						SetEntProp(i, Prop_Send, "m_lifeState", 2);
-						ChangeClientTeam(i, 2);
-						
-						if (IsFakeClient(i) && g_bCV_hidden_forcebotsclass)
-						{
-							TF2_SetPlayerClass(i, TFClass_Sniper);
-						}
-						else
-						{
-							TF2_SetPlayerClass(i, view_as<TFClassType>(PickAClass()));
-						}
-						
-						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
-
-						if (Notify)
-						{
-							CPrintToChat(i, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_team");
-						}
-					}
-				}
-			}
-		}
-	}
-}
 //shoot the bomb if ready
 bool HiddenBombTrigger() 
 {
@@ -2250,18 +2348,6 @@ bool HiddenBombTrigger()
 	Command_ClusterBomb(g_iTheCurrentHidden);	
 	AddHiddenVisible(g_fCV_hidden_visible_bomb);
 	return true;
-}
-//enable or disable the plugin - cvar changed
-public void cvhook_enabled(Handle cvar, const char[] oldVal, const char[] newVal) 
-{
-	if (GetConVarBool(g_hCV_hidden_enabled) && IsArenaMap()) 
-	{
-		ActivatePlugin();
-	} 
-	else 
-	{
-		DeactivatePlugin();
-	}
 }
 //cbomb and bomblets
 public Action Command_ClusterBomb(int client)
@@ -2330,9 +2416,12 @@ public Action SpawnClusters(Handle timer, any ent)
 		EmitAmbientSound(g_sDetonationSound, pos, SOUND_FROM_WORLD, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, 0.0);
 		int client = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
 		AcceptEntityInput(ent, "Kill");
-		if (g_iTheCurrentHidden == 0) {
+
+		if (g_iTheCurrentHidden == 0) 
+		{
 			return Plugin_Handled;
 		}
+
 		float ang[3];
 		
 		for(int i = 0; i < GetConVarInt(g_hCV_hidden_bombletcount); i++)
@@ -2371,9 +2460,12 @@ public Action ExplodeBomblet(Handle timer, any ent)
 		int client = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
 		int team = GetEntProp(client, Prop_Send, "m_iTeamNum");
 		AcceptEntityInput(ent, "Kill");
-		if (g_iTheCurrentHidden == 0) {
+
+		if (g_iTheCurrentHidden == 0) 
+		{
 			return Plugin_Handled;
 		}
+
 		int explosion = CreateEntityByName("env_explosion");
 		
 		if (IsValidEntity(explosion))
@@ -2437,69 +2529,7 @@ bool TraceRay_HitWorld(int entity, int contentsMask)
 {
 	return entity == 0;
 }
-//create a weapon
-bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0, int quality = 6)
-{
-	int weapon = CreateEntityByName(classname);
-	
-	if (!IsValidEntity(weapon))
-	{
-		return false;
-	}
-	
-	char entclass[64];
-	GetEntityNetClass(weapon, entclass, sizeof(entclass));	
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_iItemDefinitionIndex"), itemindex);	
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityLevel"), level);
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityQuality"), quality);	
-	
-	if (itemindex == 735) {
-		SetEntData(weapon, FindSendPropInfo(entclass, "m_iObjectType"), 3);
-		SetEntData(weapon, FindDataMapInfo(weapon, "m_iSubType"), 3);
-		int buildables[4] = {0,0,0,1};
-		SetEntDataArray(weapon, FindSendPropInfo(entclass, "m_aBuildableObjectTypes"), buildables, 4);
-	}
-	
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
-
-	if (!DispatchSpawn(weapon)) 
-	{
-		AcceptEntityInput(weapon, "Kill");
-		return false;
-	}
-
-	SDKCall(g_hWeaponEquip, client, weapon);
-	return true;
-} 
-//a check used for non-loops
-bool IsPlayerHere(int client)
-{
-	return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
-}
-//a check used for loops
-bool IsPlayerHereLoopCheck(int client)
-{
-	return (IsClientConnected(client) && IsClientInGame(client));
-}
-//changing the game in server browser
-#if defined _SteamWorks_Included
-void SetGameDescription() 
-{
-	char gameDesc[64];
-	
-	if (GetConVarBool(g_hCV_hidden_enabled)) 
-	{
-		Format(gameDesc, sizeof(gameDesc), "The Hidden Mod Redux");
-	} 
-	else 
-	{
-		gameDesc = "Team Fortress";
-	}
-	
-	SteamWorks_SetGameDescription(gameDesc);
-}
-#endif
-//a better way to kill players
+//a better way to dmg players
 void Client_TakeDamage(int victim, int attacker, int damage, int dmg_type = DMG_GENERIC, const char[] weapon) 
 { 
 	if (IsPlayerHere(victim)) 
@@ -2530,15 +2560,13 @@ int GetRandomUInt(int min, int max)
 {
 	return RoundToFloor(GetURandomFloat() * (max - min + 1)) + min;
 }
-//pick a random class
-int PickAClass()
+//a check used for non-loops
+bool IsPlayerHere(int client)
 {
-	int cl = GetRandomUInt(1,8);
-	
-	if (cl == 8)
-	{
-		cl = 9;
-	}
-	
-	return cl;	
+	return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
+}
+//a check used for loops
+bool IsPlayerHereLoopCheck(int client)
+{
+	return (IsClientConnected(client) && IsClientInGame(client));
 }
