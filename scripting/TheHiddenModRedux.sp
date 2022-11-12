@@ -29,7 +29,6 @@ int g_iHiddenHpMax;
 int g_iForceNextHidden;
 int g_iForceCommandHidden;
 int g_iDamageToHidden[MAXPLAYERS+1];
-int g_iResourceEntity;
 //bool gvars
 bool g_bHiddenSticky;
 bool g_bPlaying; 
@@ -312,7 +311,6 @@ public void OnConfigsExecuted()
 	SetConVarInt(FindConVar("tf_playergib"), 0);
 	SetConVarInt(FindConVar("tf_bot_reevaluate_class_in_spawnroom"), 0);
 	SetConVarString(FindConVar("tf_bot_force_class"), "");
-	g_iResourceEntity = GetPlayerResourceEntity();
 }
 //attempt to activate the plugin on mapstart, change game and precache sounds and models
 public void OnMapStart() 
@@ -914,12 +912,6 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			{
 				TF2_RemoveWeaponSlot(client, 0);
 				CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
-				int iAmmoType = GetEntProp(wep, Prop_Send, "m_iPrimaryAmmoType");
-
-				if (iAmmoType != -1) 
-				{
-					SetEntProp(client, Prop_Data, "m_iAmmo", 40, _, iAmmoType);
-				}
 			}
 		}
 
@@ -985,7 +977,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			{
 				if (customkill != TF_CUSTOM_BACKSTAB && weaponi == TF_WEAPON_KNIFE)
 				{
-					int hpperkill = GetEntProp(g_iResourceEntity, Prop_Send, "m_iMaxHealth", _, g_iTheCurrentHidden) / 3;
+					int hpperkill = GetConvarInt(g_hCV_hidden_hpperplayer);
 					
 					g_iHiddenCurrentHp += hpperkill; 
 					
@@ -2235,7 +2227,16 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 		int buildables[4] = {0,0,0,1};
 		SetEntDataArray(weapon, FindSendPropInfo(entclass, "m_aBuildableObjectTypes"), buildables, 4);
 	}
-	
+	else if(itemindex == 1178)
+	{
+		int iAmmoType = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
+
+		if (iAmmoType != -1) 
+		{
+			SetEntProp(client, Prop_Data, "m_iAmmo", 40, _, iAmmoType);
+		}
+	}
+
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
 
 	if (!DispatchSpawn(weapon)) 
