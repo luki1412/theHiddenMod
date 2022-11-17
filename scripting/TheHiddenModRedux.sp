@@ -899,20 +899,12 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 
 		if (!GetConVarBool(g_hCV_hidden_allowheavyweapons) && class == TFClass_Heavy) 
 		{
-			TF2_RemoveWeaponSlot(client, 0);
-			EquipPlayerWeapon(client, GetPlayerWeaponSlot(client, 2));
+			RequestFrame(HandleHeavyWeapons, client);
 		}
 		
 		if (GetConVarBool(g_hCV_hidden_replacepyroweapons) && class == TFClass_Pyro) 
 		{
-			int wep = GetPlayerWeaponSlot(client, 0);
-			int wepIndex = GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
-
-			if (wepIndex != 1178) 
-			{
-				TF2_RemoveWeaponSlot(client, 0);
-				CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
-			}
+			RequestFrame(HandlePyroWeapons, client);
 		}
 
 		if (class == TFClass_Sniper && !GetConVarBool(g_hCV_hidden_allowrazorback))
@@ -977,7 +969,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 			{
 				if (customkill != TF_CUSTOM_BACKSTAB && weaponi == TF_WEAPON_KNIFE)
 				{
-					int hpperkill = GetConvarInt(g_hCV_hidden_hpperplayer);
+					int hpperkill = GetConVarInt(g_hCV_hidden_hpperplayer);
 					
 					g_iHiddenCurrentHp += hpperkill; 
 					
@@ -2247,6 +2239,34 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 
 	SDKCall(g_hWeaponEquip, client, weapon);
 	return true;
+}
+
+void HandleHeavyWeapons(int client) 
+{
+	if (!client) 
+	{
+		return;
+	}
+	
+	TF2_RemoveWeaponSlot(client, 0);
+	EquipPlayerWeapon(client, GetPlayerWeaponSlot(client, 2));
+}
+
+void HandlePyroWeapons(int client) 
+{
+	if (!client) 
+	{
+		return;
+	}
+	
+	int wep = GetPlayerWeaponSlot(client, 0);
+	int wepIndex = GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
+
+	if (wepIndex != 1178) 
+	{
+		TF2_RemoveWeaponSlot(client, 0);
+		CreateNamedItem(client, "tf_weapon_rocketlauncher_fireball", 1178,  1, 0);
+	}
 }
 //give vision
 void GiveHiddenVision(int client) 
