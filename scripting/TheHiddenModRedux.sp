@@ -47,7 +47,6 @@ float g_fHiddenVisible;
 float g_fHiddenBomb;
 float g_fTickInterval;
 //handles
-Handle g_hTick;
 Handle g_hHiddenHudHp;
 Handle g_hHiddenHudStamina;
 Handle g_hHiddenHudClusterBomb;
@@ -375,14 +374,13 @@ void ActivatePlugin()
 	
 	g_bActivated = true;
 	g_bTimerDieTick = false;
-	g_hTick = CreateTimer(0.2, Timer_Tick, _, TIMER_REPEAT);
+	CreateTimer(0.1, Timer_Tick, _, TIMER_REPEAT);
 	
 	HookEvent("teamplay_round_win", teamplay_round_win, EventHookMode_PostNoCopy);
 	HookEvent("teamplay_round_start", teamplay_round_start, EventHookMode_PostNoCopy);
 	HookEvent("arena_round_start", arena_round_start, EventHookMode_PostNoCopy);
 
 	HookEvent("player_spawn", player_spawn);
-	HookEvent("player_hurt", player_hurt_pre, EventHookMode_Pre);
 	HookEvent("player_hurt", player_hurt);
 	HookEvent("player_death", player_death);
 	HookEvent("player_upgradedobject", player_upgradedobject);
@@ -434,7 +432,6 @@ void DeactivatePlugin()
 	
 	g_bActivated = false;
 	g_bTimerDieTick = true;
-	g_hTick = null;
 	CreateTimer(1.0, Timer_EnableCps, _, TIMER_FLAG_NO_MAPCHANGE);
 	
 	UnhookEvent("teamplay_round_win", teamplay_round_win, EventHookMode_PostNoCopy);
@@ -442,7 +439,6 @@ void DeactivatePlugin()
 	UnhookEvent("arena_round_start", arena_round_start, EventHookMode_PostNoCopy);
 
 	UnhookEvent("player_spawn", player_spawn);
-	UnhookEvent("player_hurt", player_hurt_pre, EventHookMode_Pre);
 	UnhookEvent("player_hurt", player_hurt);
 	UnhookEvent("player_death", player_death);
 	UnhookEvent("player_upgradedobject", player_upgradedobject);
@@ -724,6 +720,7 @@ public Action Cmd_class(int client, char[] cmd, int args)
 	}
 
 	int team = GetClientTeam(client);
+
 	if (team < 3)
 	{
 		char arg1[32];
@@ -782,8 +779,8 @@ public Action OnTakeDamage(int client, int &attacker, int &inflictor, float &dam
 	
 	return Plugin_Continue;
 }
-//a player will get hurt, only care about the hidden
-public void player_hurt_pre(Handle event, const char[] name, bool dontBroadcast) 
+//a player got hurt, only care about the hidden
+public void player_hurt(Handle event, const char[] name, bool dontBroadcast) 
 {
 	if (!GetConVarBool(g_hCV_hidden_enabled)) 
 	{
@@ -810,25 +807,8 @@ public void player_hurt_pre(Handle event, const char[] name, bool dontBroadcast)
 		{
 			g_iDamageToHidden[attacker] += damage;
 		}
-	}	
-}
-
-//a player got hurt, only care about the hidden
-public void player_hurt(Handle event, const char[] name, bool dontBroadcast) 
-{
-	if (!GetConVarBool(g_hCV_hidden_enabled)) 
-	{
-		return;
 	}
 
-	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	
-	if (victim != g_iTheCurrentHidden)
-	{
-		return;
-	}
-
-	int damage = GetEventInt(event, "damageamount");
 	g_iHiddenCurrentHp -= damage;
 	
 	if (g_iHiddenCurrentHp < 0)
@@ -865,12 +845,6 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 0);
 			SetVariantString("");
 			AcceptEntityInput(client, "SetCustomModel");
-		}
-		
-		if (IsFakeClient(client))
-		{
-			g_bTimerDie = false;
-			CreateTimer(1.0, Timer_Beacon, client, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
 		}
 		
 		return;
@@ -953,11 +927,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 	if (victim != g_iTheCurrentHidden)
 	{
 		SetEntProp(victim, Prop_Send, "m_bGlowEnabled", 0);
-
-		if (TF2_IsPlayerInCondition(victim, TFCond_HalloweenGhostMode)) 
-		{   
-			RequestFrame(GhostFix, victim);
-		}
+		RequestFrame(GhostFix, victim);
 
 		if (attacker == g_iTheCurrentHidden)
 		{
@@ -1088,23 +1058,20 @@ public void GibRagdoll(int client)
 //lets fix the ghost
 public void GhostFix(int client)
 {
-    RequestFrame(GhostFix2, client);
-}
-//one more frame delay to fix flying cosmetics
-public void GhostFix2(int client)
-{
-    if (IsPlayerHere(client)) 
-    {
-		SetEntProp(client, Prop_Send, "m_lifeState", 2);
-		SetVariantInt(2);
-		AcceptEntityInput(client, "SetForcedTauntCam");
+	if (!TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode)) 
+	{   
+		return;
+	}
 
-		SetVariantInt(1);
-		AcceptEntityInput(client, "SetCustomModelRotates");
+	SetEntProp(client, Prop_Send, "m_lifeState", 2);
+	SetVariantInt(2);
+	AcceptEntityInput(client, "SetForcedTauntCam");
 
-		SetVariantString("models/props_halloween/ghost.mdl");
-		AcceptEntityInput(client, "SetCustomModel");
-    }
+	SetVariantInt(1);
+	AcceptEntityInput(client, "SetCustomModelRotates");
+
+	SetVariantString("models/props_halloween/ghost.mdl");
+	AcceptEntityInput(client, "SetCustomModel");
 }
 //the game frame, less = better
 public void OnGameFrame()
@@ -1312,6 +1279,12 @@ public void arena_round_start(Handle event, const char[] name, bool dontBroadcas
 			}
 		}
 	}
+
+	if (IsPlayerHereLoopCheck(g_iTheCurrentHidden) && IsFakeClient(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
+	{
+		g_bTimerDie = false;
+		CreateTimer(1.0, Timer_Beacon, g_iTheCurrentHidden, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
+	}
 }
 //a beacon for the hidden bot
 public Action Timer_Beacon(Handle timer, any client)
@@ -1327,14 +1300,13 @@ public Action Timer_Beacon(Handle timer, any client)
 	
 	if (g_iBeamSprite > -1 && g_iHaloSprite > -1)
 	{
-		int Color[4] = {0, 0, 255, 255};
-		TE_SetupBeamRingPoint(vec, 10.0, 400.0, g_iBeamSprite, g_iHaloSprite, 0, 15, 0.5, 5.0, 0.0, Color, 10, 0);
+		int Color[4] = {10, 10, 255, 255};
+		TE_SetupBeamRingPoint(vec, 10.0, 400.0, g_iBeamSprite, g_iHaloSprite, 0, 30, 1.0, 10.0, 0.0, Color, 10, 0);
 		TE_SendToAll();
 	}
 	
 	if (g_sBlipSound[0])
 	{
-		GetClientEyePosition(client, vec);
 		EmitAmbientSound(g_sBlipSound, vec, client, SNDLEVEL_RAIDSIREN);	
 	}
 	
@@ -1400,12 +1372,7 @@ void NewGame()
 		g_iDamageToHidden[n] = 0;
 	}
 	
-	RequestFrame(RespawnAll, _);	
-	
-	if (g_hTick == null)
-	{
-		g_hTick = CreateTimer(0.1, Timer_Tick, _, TIMER_REPEAT);
-	}
+	RequestFrame(RespawnAll, _);
 }
 public void RespawnAll(int client)
 {
@@ -2146,13 +2113,12 @@ void ShowHiddenHP()
 		return;
 	}
 	
-	int perc = RoundToCeil(float(g_iHiddenCurrentHp)/float(g_iHiddenHpMax)*100.0);
-	int ponc = RoundToCeil(g_fHiddenStamina/g_fCV_hidden_stamina*100.0);
-	int cbomb = RoundToCeil(100.0-g_fHiddenBomb/g_fCV_hidden_bombtime*100.0);
-	float starv = g_fHiddenInvisibility/g_fCV_hidden_starvationtime*100.0; 
-	int hung = RoundToCeil(100.0-starv);
+	int hppercent = RoundToCeil(float(g_iHiddenCurrentHp)/float(g_iHiddenHpMax)*100.0);
+	int stamina = RoundToCeil(g_fHiddenStamina/g_fCV_hidden_stamina*100.0);
+	int clusterbomb = RoundToCeil(100.0-g_fHiddenBomb/g_fCV_hidden_bombtime*100.0);
+	int hunger = RoundToCeil(100.0-(g_fHiddenInvisibility/g_fCV_hidden_starvationtime*100.0));
 	
-	if (perc <= 0.0)
+	if (hppercent <= 0.0)
 	{
 		return;
 	}
@@ -2163,35 +2129,35 @@ void ShowHiddenHP()
 		{
 			if (i != g_iTheCurrentHidden)
 			{
-				if (perc > 25.0) 
+				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.23, 50, 255, 50, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.15, 50, 255, 50, 255, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.23, 255, 50, 50, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.15, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
 				}
 				
-				ShowSyncHudText(i, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud", perc);
+				ShowSyncHudText(i, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud", hppercent);
 			}
 			else
 			{
-				if (perc > 25.0) 
+				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.23, 40, 255, 40, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.15, 40, 255, 40, 255, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.23, 255, 50, 50, 255, 1, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.15, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
 				}
 				
-				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud2", perc);
-				SetHudTextParams(-1.0, 0.125, 0.23, 10, 255, 128, 255, 1, 0.0, 0.0, 0.0);
-				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudStamina, "%t: %.0i%%", "hidden_hud3", ponc);
-				SetHudTextParams(-1.0, 0.150, 0.23, 70, 70, 255, 255, 1, 0.0, 0.0, 0.0);
-				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudClusterBomb, "%t: %.0i%%", "hidden_hud4", cbomb);
-				SetHudTextParams(-1.0, 0.175, 0.23, 144, 40, 255, 255, 1, 0.0, 0.0, 0.0);
-				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHunger, "%t: %.0i%%", "hidden_hud5", hung);
+				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud2", hppercent);
+				SetHudTextParams(-1.0, 0.125, 0.15, 10, 255, 128, 255, 0, 0.0, 0.0, 0.0);
+				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudStamina, "%t: %.0i%%", "hidden_hud3", stamina);
+				SetHudTextParams(-1.0, 0.150, 0.15, 70, 70, 255, 255, 0, 0.0, 0.0, 0.0);
+				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudClusterBomb, "%t: %.0i%%", "hidden_hud4", clusterbomb);
+				SetHudTextParams(-1.0, 0.175, 0.15, 144, 40, 255, 255, 0, 0.0, 0.0, 0.0);
+				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHunger, "%t: %.0i%%", "hidden_hud5", hunger);
 			}
 		}
 	} 
@@ -2211,7 +2177,14 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_iItemDefinitionIndex"), itemindex);	
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityLevel"), level);
 	SetEntData(weapon, FindSendPropInfo(entclass, "m_iEntityQuality"), quality);	
-	
+	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
+
+	if (!DispatchSpawn(weapon)) 
+	{
+		AcceptEntityInput(weapon, "Kill");
+		return false;
+	}
+
 	if (itemindex == 735) 
 	{
 		SetEntData(weapon, FindSendPropInfo(entclass, "m_iObjectType"), 3);
@@ -2219,22 +2192,12 @@ bool CreateNamedItem(int client, char[] classname, int itemindex, int level = 0,
 		int buildables[4] = {0,0,0,1};
 		SetEntDataArray(weapon, FindSendPropInfo(entclass, "m_aBuildableObjectTypes"), buildables, 4);
 	}
-	else if(itemindex == 1178)
+	
+	if (itemindex == 1178)
 	{
-		int iAmmoType = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
-
-		if (iAmmoType != -1) 
-		{
-			SetEntProp(client, Prop_Data, "m_iAmmo", 40, _, iAmmoType);
-		}
-	}
-
-	SetEntData(weapon, FindSendPropInfo(entclass, "m_bInitialized"), 1);
-
-	if (!DispatchSpawn(weapon)) 
-	{
-		AcceptEntityInput(weapon, "Kill");
-		return false;
+		int iOffset = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1)*4;
+		int iAmmoTable = FindSendPropInfo("CTFPlayer", "m_iAmmo");
+		SetEntData(client, iAmmoTable+iOffset, 40, 4);
 	}
 
 	SDKCall(g_hWeaponEquip, client, weapon);
