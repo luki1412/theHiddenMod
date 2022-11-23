@@ -70,7 +70,7 @@
 	"hidden_command3"
 	{
 		"#format"	"{1:N}"
-		"en"		"{powderblue}The next {crimson}Hidden{powderblue} will be {crimson}{1}{powderblue}, regardless of who wins the round."
+		"en"		"{powderblue}Set {crimson}{1}{powderblue} as the next {crimson}Hidden{powderblue}, regardless of who wins the round."
 	}
 	"hidden_command4"
 	{
@@ -126,10 +126,6 @@
 		"en"		"You can't change your class on this team!"
 	}
 	"hidden_problem"
-	{
-		"en"		"{powderblue}There are too many entities on the map, can't spawn the bomb."
-	}
-	"hidden_problem2"
 	{
 		"en"		"{powderblue}You are too close to a wall or something similar."
 	}

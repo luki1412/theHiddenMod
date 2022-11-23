@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.33"
+#define PLUGIN_VERSION "1.35"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -63,7 +63,7 @@ ConVar g_hCV_hidden_visible_jarate;
 ConVar g_hCV_hidden_visible_pounce;
 ConVar g_hCV_hidden_visible_bomb;
 ConVar g_hCV_hidden_replacepyroweapons;
-ConVar g_hCV_hidden_allowheavyweapons;
+ConVar g_hCV_hidden_replaceheavyweapons;
 ConVar g_hCV_hidden_allowsentries;
 ConVar g_hCV_hidden_allowdispenserupgrade;
 ConVar g_hCV_hidden_allowteleporterupgrade;
@@ -79,11 +79,9 @@ ConVar g_hCV_hidden_bombletspreadvel;
 ConVar g_hCV_hidden_bombthrowspeed;
 ConVar g_hCV_hidden_bombdetonationdelay;
 ConVar g_hCV_hidden_bombignoreuser;
-ConVar g_hCV_hidden_ghosts;
 Handle g_hWeaponEquip;
 //cvar globals
 int g_iCV_hidden_tauntdamage;
-bool g_bCV_hidden_ghosts;
 bool g_bCV_hidden_forcebotsclass;
 float g_fCV_hidden_stamina;
 float g_fCV_hidden_starvationtime;
@@ -141,14 +139,14 @@ public void OnPluginStart()
 	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowteleporterupgrade = CreateConVar("sm_thehidden_allowteleporterupgrade", "1", "Set whether engineers are allowed to upgrade teleporters.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_allowheavyweapons = CreateConVar("sm_thehidden_allowheavyprimaries", "0", "Set whether heavies are allowed to use primary weapons.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_replaceheavyweapons = CreateConVar("sm_thehidden_replaceheavyprimaries", "1", "Set whether pyro's primary weapons should be replaced with Brass Beast that has lowered damage.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowrazorback = CreateConVar("sm_thehidden_allowrazorback", "0", "Allow/disallow razorbacks for snipers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_visible_damage = CreateConVar("sm_thehidden_visibledamage", "0.5", "How much time is the Hidden visible for, after taking weapon damage.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_jarate = CreateConVar("sm_thehidden_visiblejarate", "1.0", "How much time is the Hidden visible for, when splashed with jarate, mad milk, or bonked.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_pounce = CreateConVar("sm_thehidden_visiblepounce", "0.25", "How much time is the Hidden visible for, when dashing.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_bomb = CreateConVar("sm_thehidden_visiblebomb", "1.5", "How much time is the Hidden visible for, after throwing the cluster bomb.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_hpbase = CreateConVar("sm_thehidden_hpbase", "300", "Amount of hp used for calculating the Hidden's starting/max hp.", FCVAR_NONE, true, 1.0, true, 10000.0);
-	g_hCV_hidden_hpperplayer = CreateConVar("sm_thehidden_hpincreaseperplayer", "70", "This amount of hp, multiplied by the number of players, plus the base hp, equals The Hidden's hp.", FCVAR_NONE, true, 0.0, true, 1000.0);
+	g_hCV_hidden_hpperplayer = CreateConVar("sm_thehidden_hpincreaseperplayer", "70", "This amount of hp, multiplied by the number of players, plus the base hp, equals The Hidden's hp. This is also the amount of HP the Hidden after butterknife kills.", FCVAR_NONE, true, 0.0, true, 1000.0);
 	g_hCV_hidden_forcebotsclass = CreateConVar("sm_thehidden_forcebotsclass", "1", "Force bots to play as snipers only.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_bombletcount = CreateConVar("sm_thehidden_bombletcount", "10", "Amount of bomb clusters(bomblets) inside a cluster bomb.", FCVAR_NONE, true, 1.0, true, 30.0);
 	g_hCV_hidden_bombletmagnitude = CreateConVar("sm_thehidden_bombletmagnitude", "20.0", "Magnitude of a bomblet.", FCVAR_NONE, true, 1.0, true, 1000.0);
@@ -159,7 +157,6 @@ public void OnPluginStart()
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing anyone.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
-	g_hCV_hidden_ghosts = CreateConVar("sm_thehidden_ghosts", "0", "Sets whether red players should turn into ghosts after death.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_pref = CreateConVar("sm_thehidden_preferenceenabled", "1", "Sets whether The Hidden preference should be enabled.", FCVAR_NONE, true, 0.0, true, 1.0);
     
 	g_fTickInterval = GetTickInterval(); // 0.014999 default
@@ -318,14 +315,6 @@ public void OnMapStart()
 	PrecacheModel(g_sCanisterModel, true);
 	PrecacheModel(g_sBombletModel, true);
 	PrecacheSound(g_sBlipSound, true);
-	PrecacheModel("models/props_halloween/ghost.mdl", true);
-	PrecacheSound("vo/halloween_boo1.mp3", true);
-	PrecacheSound("vo/halloween_boo2.mp3", true);
-	PrecacheSound("vo/halloween_boo3.mp3", true);
-	PrecacheSound("vo/halloween_boo4.mp3", true);
-	PrecacheSound("vo/halloween_boo5.mp3", true);
-	PrecacheSound("vo/halloween_boo6.mp3", true);
-	PrecacheSound("vo/halloween_boo7.mp3", true);
 
 	g_iHaloSprite = PrecacheModel(g_sHaloSprite, true);
 	g_iBeamSprite = PrecacheModel(g_sBeamSprite, true);
@@ -359,7 +348,6 @@ void LoadCvars()
 	g_fCV_hidden_visible_pounce = GetConVarFloat(g_hCV_hidden_visible_pounce);
 	g_fCV_hidden_visible_bomb = GetConVarFloat(g_hCV_hidden_visible_bomb);
 	g_iCV_hidden_tauntdamage = GetConVarInt(g_hCV_hidden_tauntdamage);
-	g_bCV_hidden_ghosts = GetConVarBool(g_hCV_hidden_ghosts);
 	g_bCV_hidden_forcebotsclass = GetConVarBool(g_hCV_hidden_forcebotsclass);
 }
 //activate the mod
@@ -369,7 +357,7 @@ void ActivatePlugin()
 	{
 		return;
 	}
-	
+
 	CreateTimer(30.0, Timer_Win, _, TIMER_FLAG_NO_MAPCHANGE);
 	
 	g_bActivated = true;
@@ -429,7 +417,7 @@ void DeactivatePlugin()
 	{
 		return;
 	}
-	
+
 	g_bActivated = false;
 	g_bTimerDieTick = true;
 	CreateTimer(1.0, Timer_EnableCps, _, TIMER_FLAG_NO_MAPCHANGE);
@@ -665,25 +653,8 @@ public Action Cmd_join(int client, char[] cmd, int args)
 		char arg1[32];
 		GetCmdArg(1, arg1, sizeof(arg1));
 
-		if (StrEqual(arg1, "red", true)) 
+		if (StrEqual(arg1, "red", true) || StrEqual(arg1, "spectator", true) || StrEqual(arg1, "spectate", true)) 
 		{
-			return Plugin_Continue;
-		}
-		else if (StrEqual(arg1, "spectator", true) || StrEqual(arg1, "spectate", true))
-		{
-			if (IsPlayerHere(client)) 
-			{
-				if (TF2_IsPlayerInCondition(client, TFCond_HalloweenInHell)) 
-				{
-					TF2_RemoveCondition(client, TFCond_HalloweenInHell);
-				}
-				
-				if (TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode)) 
-				{
-					TF2_RemoveCondition(client, TFCond_HalloweenGhostMode);
-				}
-			}
-
 			return Plugin_Continue;
 		}
 		else
@@ -760,6 +731,12 @@ public Action OnTakeDamage(int client, int &attacker, int &inflictor, float &dam
 
 	if (client == g_iTheCurrentHidden)
 	{
+		if (GetConVarBool(g_hCV_hidden_replaceheavyweapons) && (weapon>0) && (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == 312)) 
+		{
+			damage /= 5.0;
+			return Plugin_Changed;
+		}
+
 		if (damagetype & DMG_FALL)
 		{
 			return Plugin_Handled;
@@ -825,53 +802,61 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 	{
 		return;
 	}
-
+	
 	g_iDamageToHidden[client] = 0;
 	TFClassType class = view_as<TFClassType>(GetEventInt(event, "class"));
-	
+	int team = GetClientTeam(client);
+
 	if (client == g_iTheCurrentHidden) 
 	{
-		if (class != TFClass_Spy)
-		{
+		if (team != 3) {
 			SetEntProp(client, Prop_Send, "m_lifeState", 2);
 			ChangeClientTeam(client, 3);
+			if (!IsPlayerAlive(client)) {
+				CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			}
+			return;
+		}
+
+		if (class != TFClass_Spy)
+		{
 			TF2_SetPlayerClass(client, TFClass_Spy, false, true);
 			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
-			return;
 		}
 		else
 		{
 			RequestFrame(GiveHiddenPowers, client);
 			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 0);
-			SetVariantString("");
-			AcceptEntityInput(client, "SetCustomModel");
 		}
 		
 		return;
 	}
 	else
 	{
-		int team = GetClientTeam(client);
-		
-		if (g_bCV_hidden_forcebotsclass && IsFakeClient(client) && class != TFClass_Sniper)
-		{
+		if (team != 2) {
 			SetEntProp(client, Prop_Send, "m_lifeState", 2);
 			ChangeClientTeam(client, 2);
+			if (!IsPlayerAlive(client)) {
+				CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			}
+			return;
+		}
+
+		if (g_bCV_hidden_forcebotsclass && IsFakeClient(client) && class != TFClass_Sniper)
+		{
 			TF2_SetPlayerClass(client, TFClass_Sniper, false, true);
 			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 			return;	
 		}
 
-		if (class == TFClass_Unknown || class == TFClass_Spy || team != 2) 
+		if (class == TFClass_Unknown || class == TFClass_Spy) 
 		{
-			SetEntProp(client, Prop_Send, "m_lifeState", 2);
-			ChangeClientTeam(client, 2);
 			TF2_SetPlayerClass(client, view_as<TFClassType>(PickAClass()), false, true);
 			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 			return;
 		}
 
-		if (!GetConVarBool(g_hCV_hidden_allowheavyweapons) && class == TFClass_Heavy) 
+		if (GetConVarBool(g_hCV_hidden_replaceheavyweapons) && class == TFClass_Heavy) 
 		{
 			RequestFrame(HandleHeavyWeapons, client);
 		}
@@ -881,7 +866,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			RequestFrame(HandlePyroWeapons, client);
 		}
 
-		if (class == TFClass_Sniper && !GetConVarBool(g_hCV_hidden_allowrazorback))
+		if (!GetConVarBool(g_hCV_hidden_allowrazorback) && class == TFClass_Sniper)
 		{
 			int ent = MaxClients+1;
 			
@@ -894,6 +879,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 					if (GetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex") == 57)
 					{
 						AcceptEntityInput(ent, "Kill");
+						break;
 					}
 				} 
 				else 
@@ -903,8 +889,6 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			} 
 		}
 
-		SetVariantString("");
-		AcceptEntityInput(client, "SetCustomModel");
 		SetEntProp(client, Prop_Send, "m_bGlowEnabled", 1);
 	}
 }
@@ -927,7 +911,6 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 	if (victim != g_iTheCurrentHidden)
 	{
 		SetEntProp(victim, Prop_Send, "m_bGlowEnabled", 0);
-		RequestFrame(GhostFix, victim);
 
 		if (attacker == g_iTheCurrentHidden)
 		{
@@ -950,17 +933,11 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill", victim);
 
-					if (!g_bCV_hidden_ghosts) 
-					{
-						RequestFrame(Dissolve, victim);
-					}
+					RequestFrame(Dissolve, victim);
 				}
 				else
 				{
-					if (!g_bCV_hidden_ghosts) 
-					{
-					   RequestFrame(GibRagdoll, victim);
-					}
+					RequestFrame(GibRagdoll, victim);
 
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill2", victim);
 				}
@@ -1054,24 +1031,6 @@ public void GibRagdoll(int client)
 			DispatchSpawn(newragdoll);
 		}
 	}
-}
-//lets fix the ghost
-public void GhostFix(int client)
-{
-	if (!TF2_IsPlayerInCondition(client, TFCond_HalloweenGhostMode)) 
-	{   
-		return;
-	}
-
-	SetEntProp(client, Prop_Send, "m_lifeState", 2);
-	SetVariantInt(2);
-	AcceptEntityInput(client, "SetForcedTauntCam");
-
-	SetVariantInt(1);
-	AcceptEntityInput(client, "SetCustomModelRotates");
-
-	SetVariantString("models/props_halloween/ghost.mdl");
-	AcceptEntityInput(client, "SetCustomModel");
 }
 //the game frame, less = better
 public void OnGameFrame()
@@ -1268,17 +1227,6 @@ public void arena_round_start(Handle event, const char[] name, bool dontBroadcas
 	Client_RespawnAll(true);
 	g_bPlaying = true;
 	g_bHiddenStarvation = false;
-
-	if (g_bCV_hidden_ghosts) 
-	{   
-		for(int client = 1; client <= MaxClients; client++) 
-		{
-			if (IsPlayerHereLoopCheck(client) && GetClientTeam(client) == 2 && IsPlayerAlive(client)) 
-			{
-				TF2_AddCondition(client, TFCond_HalloweenInHell, 2147483647.0, 0);
-			}
-		}
-	}
 
 	if (IsPlayerHereLoopCheck(g_iTheCurrentHidden) && IsFakeClient(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
 	{
@@ -1563,13 +1511,13 @@ bool CheckTablePresence()
 	} 
 	else 
 	{
-		/* Process results here! */
 		bool result = false;
+
 		if (query.RowCount == 1) 
 		{
 			result = true;
 		}
-		/* Free the Handle */
+
 		delete query;
 		return result;
 	}
@@ -1841,8 +1789,10 @@ void Client_RespawnAll(bool Notify)
 					{
 						SetEntProp(i, Prop_Send, "m_lifeState", 2);
 						ChangeClientTeam(i, 3);
-						TF2_SetPlayerClass(i, TFClass_Spy);
-						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+
+						if (!IsPlayerAlive(i)) {
+							CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+						}
 
 						if (Notify)
 						{
@@ -1856,17 +1806,10 @@ void Client_RespawnAll(bool Notify)
 					{
 						SetEntProp(i, Prop_Send, "m_lifeState", 2);
 						ChangeClientTeam(i, 2);
-						
-						if (IsFakeClient(i) && g_bCV_hidden_forcebotsclass)
-						{
-							TF2_SetPlayerClass(i, TFClass_Sniper);
+
+						if (!IsPlayerAlive(i)) {
+							CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
 						}
-						else
-						{
-							TF2_SetPlayerClass(i, view_as<TFClassType>(PickAClass()));
-						}
-						
-						CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
 
 						if (Notify)
 						{
@@ -1984,7 +1927,7 @@ void SelectHidden()
 	g_fHiddenBomb = 0.0;
 	int forcedcommand = GetClientOfUserId(g_iForceCommandHidden);
 	
-	if (IsPlayerHere(forcedcommand) && GetClientTeam(forcedcommand) > 1 )
+	if (IsPlayerHere(forcedcommand) && (GetClientTeam(forcedcommand) > 1 ))
 	{
 		g_iTheCurrentHidden = forcedcommand;
 		g_iForceCommandHidden = 0;
@@ -2011,6 +1954,7 @@ void SelectHidden()
 			g_iTheCurrentHidden = Client_GetRandom();
 		}
 	}
+
 	g_iForceNextHidden = 0;
 	CreateTimer(3.0, NotifyPlayers, _, TIMER_FLAG_NO_MAPCHANGE );
 }
@@ -2131,11 +2075,11 @@ void ShowHiddenHP()
 			{
 				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.15, 50, 255, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.2, 50, 255, 50, 255, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.15, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.2, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(i, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud", hppercent);
@@ -2144,19 +2088,19 @@ void ShowHiddenHP()
 			{
 				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.15, 40, 255, 40, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.2, 40, 255, 40, 255, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.15, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(-1.0, 0.1, 0.2, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud2", hppercent);
-				SetHudTextParams(-1.0, 0.125, 0.15, 10, 255, 128, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.125, 0.2, 10, 255, 128, 255, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudStamina, "%t: %.0i%%", "hidden_hud3", stamina);
-				SetHudTextParams(-1.0, 0.150, 0.15, 70, 70, 255, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.150, 0.2, 70, 70, 255, 255, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudClusterBomb, "%t: %.0i%%", "hidden_hud4", clusterbomb);
-				SetHudTextParams(-1.0, 0.175, 0.15, 144, 40, 255, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(-1.0, 0.175, 0.2, 144, 40, 255, 255, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHunger, "%t: %.0i%%", "hidden_hud5", hunger);
 			}
 		}
@@ -2210,9 +2154,15 @@ void HandleHeavyWeapons(int client)
 	{
 		return;
 	}
-	
-	TF2_RemoveWeaponSlot(client, 0);
-	EquipPlayerWeapon(client, GetPlayerWeaponSlot(client, 2));
+
+	int wep = GetPlayerWeaponSlot(client, 0);
+	int wepIndex = GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
+
+	if (wepIndex != 312) 
+	{
+		TF2_RemoveWeaponSlot(client, 0);
+		CreateNamedItem(client, "tf_weapon_minigun", 312,  1, 0);
+	}
 }
 
 void HandlePyroWeapons(int client) 
@@ -2313,13 +2263,6 @@ public Action Command_ClusterBomb(int client)
 {
 	if (IsPlayerHere(client) && IsPlayerAlive(client) && g_iTheCurrentHidden != 0)
 	{
-		if (GetMaxEntities() - GetEntityCount() < 200)
-		{
-			CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_problem");
-			g_fHiddenBomb = 1.0;
-			return Plugin_Handled;
-		}
-		
 		float pos[3];
 		float ePos[3];
 		float angs[3];
@@ -2335,8 +2278,9 @@ public Action Command_ClusterBomb(int client)
 
 			if (GetVectorDistance(ePos, pos, false) < 45.0)
 			{
-				CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_problem2");
+				CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_problem");
 				g_fHiddenBomb = 1.0;
+				CloseHandle(trace);
 				return Plugin_Handled;
 			}
 		}
@@ -2460,9 +2404,14 @@ public Action ExplodeBomblet(Handle timer, any ent)
 			ActivateEntity(explosion);
 			TeleportEntity(explosion, pos, NULL_VECTOR, NULL_VECTOR);				
 			AcceptEntityInput(explosion, "Explode");
-			AcceptEntityInput(physexplosion, "Enable");
+
+			if (IsValidEntity(physexplosion))
+			{
+				AcceptEntityInput(physexplosion, "Enable");
+				CreateTimer(0.4, StopPush, physexplosion, TIMER_FLAG_NO_MAPCHANGE);
+			}
+
 			AcceptEntityInput(explosion, "Kill");
-			CreateTimer(0.4, StopPush, physexplosion, TIMER_FLAG_NO_MAPCHANGE);
 		}		
 	}
 
