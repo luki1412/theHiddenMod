@@ -150,7 +150,7 @@
 	//no colors
 	"hidden_help2b"
 	{
-		"en"		"Each kill decreases your hunger. If you let the hunger meter reach 100%%, \nyou will die. Knife kills that aren't backstabs, restore health. \nThe health you recover is based on victim's class. You take no fall damage. \nDont forget that you still have your sapper."
+		"en"		"Each kill decreases your hunger. If you let the hunger meter reach 100%%, \nyou will die. Knife kills that aren't backstabs, restore health. You take no fall damage. \nDo not forget that you still have your sapper."
 	}
 	//no colors
 	"hidden_help3"
@@ -160,7 +160,7 @@
 	//no colors
 	"hidden_help3b"
 	{
-		"en"		"Backstabs are instant kills, but they dont recover the Hidden's health. \nButterknife kills recover the Hidden's health. \nThe amount of health recovered changes based on the class of the victim."
+		"en"		"Backstabs are instant kills, but they don't recover the Hidden's health. \nButterknife kills recover the Hidden's health."
 	}
 	//no colors
 	"hidden_menu_title"

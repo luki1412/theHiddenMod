@@ -78,7 +78,6 @@ ConVar g_hCV_hidden_bombletmagnitude;
 ConVar g_hCV_hidden_bombletspreadvel;
 ConVar g_hCV_hidden_bombthrowspeed;
 ConVar g_hCV_hidden_bombdetonationdelay;
-ConVar g_hCV_hidden_bombignoreuser;
 Handle g_hWeaponEquip;
 //cvar globals
 int g_iCV_hidden_tauntdamage;
@@ -134,7 +133,7 @@ public void OnPluginStart()
 	g_hCV_hidden_version = CreateConVar("sm_thehidden_version", PLUGIN_VERSION, "TF2 The Hidden Mod Redux version cvar", FCVAR_NOTIFY|FCVAR_DONTRECORD); 
 	g_hCV_hidden_enabled = CreateConVar("sm_thehidden_enabled", "1", "Enables/disables the Hidden Mod Redux.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_taunts = CreateConVar("sm_thehidden_allowtaunts", "1", "Enables/disables taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden while taunting.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden with their taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's primary weapons should be replaced with Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -153,7 +152,6 @@ public void OnPluginStart()
 	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "60.0", "Spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
 	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "2000.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 10000.0);
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
-	g_hCV_hidden_bombignoreuser = CreateConVar("sm_thehidden_bombignoreuser", "0", "Sets whether the bomb should ignore the Hidden or not.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing anyone.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
@@ -227,7 +225,7 @@ public void OnPluginStart()
 
 	if (!g_hWeaponEquip)
 	{
-		SetFailState("[%s] Failed to prepare the SDKCall forgiving weapons. Try updating gamedata or restarting your server.", PLUGIN_NAME);
+		SetFailState("[%s] Failed to prepare the SDKCall for giving weapons. Try updating gamedata or restarting your server.", PLUGIN_NAME);
 	}
 
 	delete hGameConfig;
@@ -244,7 +242,7 @@ public void OnPluginEnd()
 	{
 		RemoveHiddenPowers(g_iTheCurrentHidden);
 		TF2_SetPlayerClass(g_iTheCurrentHidden, TFClass_Spy);
-		CreateTimer(0.1, Timer_Respawn, g_iTheCurrentHidden, TIMER_FLAG_NO_MAPCHANGE);
+		RequestFrame(Respawn, g_iTheCurrentHidden);
 	}
 
 	DeactivatePlugin();	
@@ -277,7 +275,7 @@ public void OnLibraryRemoved(const char[] name)
 		g_bSteamWorks = false;
 	}
 }
-//changing the game in server browser
+//changing the game in the server browser
 void SetGameDescription() 
 {
 	char gameDesc[64];
@@ -813,7 +811,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			SetEntProp(client, Prop_Send, "m_lifeState", 2);
 			ChangeClientTeam(client, 3);
 			if (!IsPlayerAlive(client)) {
-				CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+				RequestFrame(Respawn, client);
 			}
 			return;
 		}
@@ -821,7 +819,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 		if (class != TFClass_Spy)
 		{
 			TF2_SetPlayerClass(client, TFClass_Spy, false, true);
-			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			RequestFrame(Respawn, client);
 		}
 		else
 		{
@@ -837,7 +835,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			SetEntProp(client, Prop_Send, "m_lifeState", 2);
 			ChangeClientTeam(client, 2);
 			if (!IsPlayerAlive(client)) {
-				CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+				RequestFrame(Respawn, client);
 			}
 			return;
 		}
@@ -845,14 +843,14 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 		if (g_bCV_hidden_forcebotsclass && IsFakeClient(client) && class != TFClass_Sniper)
 		{
 			TF2_SetPlayerClass(client, TFClass_Sniper, false, true);
-			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			RequestFrame(Respawn, client);
 			return;	
 		}
 
 		if (class == TFClass_Unknown || class == TFClass_Spy) 
 		{
 			TF2_SetPlayerClass(client, view_as<TFClassType>(PickAClass()), false, true);
-			CreateTimer(0.1, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			RequestFrame(Respawn, client);
 			return;
 		}
 
@@ -1304,7 +1302,7 @@ public Action Timer_EnableCps(Handle timer)
 
 	return Plugin_Continue;
 }
-//timer callback for new game
+//new game
 void NewGame() 
 {
 	if (g_iTheCurrentHidden != 0) 
@@ -1322,6 +1320,7 @@ void NewGame()
 	
 	RequestFrame(RespawnAll, _);
 }
+//respawn all
 public void RespawnAll(int client)
 {
     Client_RespawnAll(false);
@@ -1332,20 +1331,22 @@ public Action Timer_ResetHidden(Handle timer)
 	ResetHidden();
 	return Plugin_Continue;
 }
-//timer callback for respawn
-public Action Timer_Respawn(Handle timer, any data) 
+//respawn a player
+public void Respawn(int client) 
 {
-	TF2_RespawnPlayer(data);
-	return Plugin_Continue;
+	TF2_RespawnPlayer(client);
+	return;
 }
 //notify everyone that they can use the help command and pref command
 public Action NotifyPlayers(Handle timer) 
 {
 	CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify");
+
 	if (IsHiddenPreferenceEnabled()) 
 	{
 		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
 	}
+
 	return Plugin_Continue;
 }
 //jump check
@@ -1788,10 +1789,10 @@ void Client_RespawnAll(bool Notify)
 					if (i == g_iTheCurrentHidden)
 					{
 						SetEntProp(i, Prop_Send, "m_lifeState", 2);
+						TF2_SetPlayerClass(i, TFClass_Spy, false, true);
 						ChangeClientTeam(i, 3);
-
 						if (!IsPlayerAlive(i)) {
-							CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+							RequestFrame(Respawn, i);
 						}
 
 						if (Notify)
@@ -1805,10 +1806,10 @@ void Client_RespawnAll(bool Notify)
 					if (i != g_iTheCurrentHidden)
 					{
 						SetEntProp(i, Prop_Send, "m_lifeState", 2);
+						TF2_SetPlayerClass(i, view_as<TFClassType>(PickAClass()), false, true);
 						ChangeClientTeam(i, 2);
-
 						if (!IsPlayerAlive(i)) {
-							CreateTimer(0.1, Timer_Respawn, i, TIMER_FLAG_NO_MAPCHANGE);
+							RequestFrame(Respawn, i);
 						}
 
 						if (Notify)
@@ -2394,12 +2395,6 @@ public Action ExplodeBomblet(Handle timer, any ent)
 			SetEntPropFloat(explosion, Prop_Data, "m_flDamageForce", 0.0);
 			SetEntProp(explosion, Prop_Send, "m_iTeamNum", team);
 			SetEntPropEnt(explosion, Prop_Send, "m_hOwnerEntity", client);
-
-			if (GetConVarBool(g_hCV_hidden_bombignoreuser))
-			{
-				SetEntPropEnt(explosion, Prop_Data, "m_hEntityIgnore", client);
-			}
-			
 			DispatchSpawn(explosion);
 			ActivateEntity(explosion);
 			TeleportEntity(explosion, pos, NULL_VECTOR, NULL_VECTOR);				
