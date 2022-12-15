@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.35"
+#define PLUGIN_VERSION "1.36"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -135,22 +135,22 @@ public void OnPluginStart()
 	g_hCV_hidden_taunts = CreateConVar("sm_thehidden_allowtaunts", "1", "Enables/disables taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden with their taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's primary weapons should be replaced with Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_replaceheavyweapons = CreateConVar("sm_thehidden_replaceheavyprimaries", "1", "Set whether pyro's primary weapons should be replaced with Brass Beast that has lowered damage.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowteleporterupgrade = CreateConVar("sm_thehidden_allowteleporterupgrade", "1", "Set whether engineers are allowed to upgrade teleporters.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_replaceheavyweapons = CreateConVar("sm_thehidden_replaceheavyprimaries", "1", "Set whether pyro's primary weapons should be replaced with Brass Beast that has lowered damage.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowrazorback = CreateConVar("sm_thehidden_allowrazorback", "0", "Allow/disallow razorbacks for snipers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_visible_damage = CreateConVar("sm_thehidden_visibledamage", "0.5", "How much time is the Hidden visible for, after taking weapon damage.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_jarate = CreateConVar("sm_thehidden_visiblejarate", "1.0", "How much time is the Hidden visible for, when splashed with jarate, mad milk, or bonked.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_pounce = CreateConVar("sm_thehidden_visiblepounce", "0.25", "How much time is the Hidden visible for, when dashing.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_visible_bomb = CreateConVar("sm_thehidden_visiblebomb", "1.5", "How much time is the Hidden visible for, after throwing the cluster bomb.", FCVAR_NONE, true, 0.0, true, 5.0);
 	g_hCV_hidden_hpbase = CreateConVar("sm_thehidden_hpbase", "300", "Amount of hp used for calculating the Hidden's starting/max hp.", FCVAR_NONE, true, 1.0, true, 10000.0);
-	g_hCV_hidden_hpperplayer = CreateConVar("sm_thehidden_hpincreaseperplayer", "70", "This amount of hp, multiplied by the number of players, plus the base hp, equals The Hidden's hp. This is also the amount of HP the Hidden after butterknife kills.", FCVAR_NONE, true, 0.0, true, 1000.0);
+	g_hCV_hidden_hpperplayer = CreateConVar("sm_thehidden_hpincreaseperplayer", "70", "This amount of hp, multiplied by the number of players, plus the base hp, equals The Hidden's hp. This is also the amount of HP the Hidden gets after butterknife kills.", FCVAR_NONE, true, 0.0, true, 1000.0);
 	g_hCV_hidden_forcebotsclass = CreateConVar("sm_thehidden_forcebotsclass", "1", "Force bots to play as snipers only.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_bombletcount = CreateConVar("sm_thehidden_bombletcount", "10", "Amount of bomb clusters(bomblets) inside a cluster bomb.", FCVAR_NONE, true, 1.0, true, 30.0);
-	g_hCV_hidden_bombletmagnitude = CreateConVar("sm_thehidden_bombletmagnitude", "20.0", "Magnitude of a bomblet.", FCVAR_NONE, true, 1.0, true, 1000.0);
-	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "60.0", "Spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
-	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "2000.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 10000.0);
+	g_hCV_hidden_bombletcount = CreateConVar("sm_thehidden_bombletcount", "6", "Amount of bomb clusters(bomblets) inside a cluster bomb.", FCVAR_NONE, true, 1.0, true, 30.0);
+	g_hCV_hidden_bombletmagnitude = CreateConVar("sm_thehidden_bombletmagnitude", "50.0", "Magnitude of a bomblet.", FCVAR_NONE, true, 1.0, true, 1000.0);
+	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "50.0", "Maximum spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
+	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "1800.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 8000.0);
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing anyone.", FCVAR_NONE, true, 10.0, true, 1000.0);
@@ -160,8 +160,10 @@ public void OnPluginStart()
 	g_fTickInterval = GetTickInterval(); // 0.014999 default
 
 	RegAdminCmd("sm_nexthidden", Cmd_NextHidden, ADMFLAG_CHEATS, "Forces a certain player to be the next Hidden, regardless of who wins the round.");
+	RegAdminCmd("sm_hiddennext", Cmd_NextHidden, ADMFLAG_CHEATS, "Forces a certain player to be the next Hidden, regardless of who wins the round.");
 	RegConsoleCmd("sm_hiddenhelp", Cmd_HiddenHelp, "Shows the help menu for the Hidden mod redux.");
 	RegConsoleCmd("sm_hiddenpref", Cmd_HiddenPref, "Shows the Hidden preference menu.");
+	RegConsoleCmd("sm_hiddenpreference", Cmd_HiddenPref, "Shows the Hidden preference menu.");
 	
 	char errorMessage[255];
 	g_hHiddenPrefDB = SQLite_UseDatabase("thehiddenmod", errorMessage, sizeof(errorMessage));
@@ -931,7 +933,7 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 
 					CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_kill", victim);
 
-					RequestFrame(Dissolve, victim);
+					RequestFrame(DissolveRagdoll, victim);
 				}
 				else
 				{
@@ -1004,30 +1006,53 @@ public void player_death(Handle event, const char[] name, bool dontBroadcast)
 
 	return;
 }
-//spawn another ragdoll
+//spawn another ragdoll so we can gib it
 public void GibRagdoll(int client)
 {
 	int oldragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
 	
-	if (oldragdoll != -1)
+	if (oldragdoll < 0)
 	{
-		float RagOrigin[3], RagForce[3], RagVel[3];
-		GetEntPropVector(oldragdoll, Prop_Send, "m_vecRagdollOrigin", RagOrigin);
-		GetEntPropVector(oldragdoll, Prop_Send, "m_vecForce", RagForce);
-		GetEntPropVector(oldragdoll, Prop_Send, "m_vecRagdollVelocity", RagVel);
-		AcceptEntityInput(oldragdoll, "Kill");
-		
-		int newragdoll = CreateEntityByName("tf_ragdoll");
-		
-		if (newragdoll != -1)
-		{
-			SetEntPropVector(newragdoll, Prop_Send, "m_vecRagdollOrigin", RagOrigin);
-			SetEntPropVector(newragdoll, Prop_Send, "m_vecForce", RagForce);
-			SetEntPropVector(newragdoll, Prop_Send, "m_vecRagdollVelocity", RagVel);
-			SetEntProp(newragdoll, Prop_Send, "m_iPlayerIndex", client);
-			SetEntProp(newragdoll, Prop_Send, "m_bGib", 1);
-			DispatchSpawn(newragdoll);
-		}
+		return;
+	}
+
+	float RagOrigin[3], RagForce[3], RagVel[3];
+	GetEntPropVector(oldragdoll, Prop_Send, "m_vecRagdollOrigin", RagOrigin);
+	GetEntPropVector(oldragdoll, Prop_Send, "m_vecForce", RagForce);
+	GetEntPropVector(oldragdoll, Prop_Send, "m_vecRagdollVelocity", RagVel);
+	AcceptEntityInput(oldragdoll, "Kill");
+	
+	int newragdoll = CreateEntityByName("tf_ragdoll");
+	
+	if (IsValidEntity(newragdoll))
+	{
+		SetEntPropVector(newragdoll, Prop_Send, "m_vecRagdollOrigin", RagOrigin);
+		SetEntPropVector(newragdoll, Prop_Send, "m_vecForce", RagForce);
+		SetEntPropVector(newragdoll, Prop_Send, "m_vecRagdollVelocity", RagVel);
+		SetEntPropEnt(newragdoll, Prop_Send, "m_hPlayer", client);
+		SetEntProp(newragdoll, Prop_Send, "m_bGib", 1);
+		DispatchSpawn(newragdoll);
+	}
+}
+//ragdoll dissolve
+public void DissolveRagdoll(int client) 
+{
+	int ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
+	
+	if (ragdoll < 0) 
+	{
+		return;
+	}
+	
+	int ent = CreateEntityByName("env_entity_dissolver");
+	
+	if (IsValidEntity(ent)) 
+	{
+		DispatchKeyValue(ent, "dissolvetype", "3");
+		DispatchKeyValue(ent, "target", "!activator");
+		DispatchKeyValue(ent, "magnitude", "20");
+		AcceptEntityInput(ent, "Dissolve", ragdoll, ragdoll);
+		AcceptEntityInput(ent, "Kill");
 	}
 }
 //the game frame, less = better
@@ -1369,37 +1394,6 @@ public Action Timer_Win(Handle timer, any data)
 	}
 
 	return Plugin_Continue;
-}
-//ragdol dissolve timer
-public void Dissolve(int client) 
-{
-	if (!IsPlayerHere(client)) 
-	{
-		return;
-	}
-	
-	int ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
-	
-	if (ragdoll < 0) 
-	{
-		return;
-	}
-	
-	char dname[32];
-	char dtype[32];
-	Format(dname, sizeof(dname), "dis_%d", client);
-	Format(dtype, sizeof(dtype), "%d", 3);
-	int ent = CreateEntityByName("env_entity_dissolver");
-	
-	if (IsValidEntity(ent)) 
-	{
-		DispatchKeyValue(ragdoll, "targetname", dname);
-		DispatchKeyValue(ent, "dissolvetype", dtype);
-		DispatchKeyValue(ent, "target", dname);
-		DispatchKeyValue(ent, "magnitude", "10");
-		AcceptEntityInput(ent, "Dissolve", ragdoll, ragdoll);
-		AcceptEntityInput(ent, "Kill");
-	}
 }
 //hud timer
 public Action Timer_Tick(Handle timer) 
@@ -1979,9 +1973,9 @@ void HiddenSuperJump()
 	GetEntPropVector(g_iTheCurrentHidden, Prop_Data, "m_vecAbsVelocity", vel);
 	float tmp[3];
 	GetAngleVectors(ang, tmp, NULL_VECTOR, NULL_VECTOR);
-	vel[0] += tmp[0]*700.0;
-	vel[1] += tmp[1]*700.0;
-	vel[2] += tmp[2]*1320.0;
+	vel[0] += tmp[0] * 1000.0;
+	vel[1] += tmp[1] * 1000.0;
+	vel[2] += tmp[2] * 1000.0;
 	TeleportEntity(g_iTheCurrentHidden, NULL_VECTOR, NULL_VECTOR, vel);
 	AddHiddenVisible(g_fCV_hidden_visible_pounce);
 	g_fHiddenStamina -= 5.0;
@@ -2264,20 +2258,20 @@ public Action Command_ClusterBomb(int client)
 {
 	if (IsPlayerHere(client) && IsPlayerAlive(client) && g_iTheCurrentHidden != 0)
 	{
-		float pos[3];
-		float ePos[3];
-		float angs[3];
-		float vecs[3];			
-		GetClientEyePosition(client, pos);
-		GetClientEyeAngles(client, angs);
-		GetAngleVectors(angs, vecs, NULL_VECTOR, NULL_VECTOR);
-		Handle trace = TR_TraceRayFilterEx(pos, angs, MASK_SHOT, RayType_Infinite, TraceEntityFilterPlayer);
+		float eyePosVecs[3];
+		float angVecs[3];
+		float fwdVecs[3];			
+		GetClientEyePosition(client, eyePosVecs);
+		GetClientEyeAngles(client, angVecs);
+		GetAngleVectors(angVecs, fwdVecs, NULL_VECTOR, NULL_VECTOR);
+		Handle trace = TR_TraceRayFilterEx(eyePosVecs, angVecs, MASK_SHOT, RayType_Infinite, TraceEntityFilterPlayer);
 
 		if (TR_DidHit(trace))
 		{
+			float ePos[3];
 			TR_GetEndPosition(ePos, trace);
 
-			if (GetVectorDistance(ePos, pos, false) < 45.0)
+			if (GetVectorDistance(ePos, eyePosVecs, false) < 45.0)
 			{
 				CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_problem");
 				g_fHiddenBomb = 1.0;
@@ -2287,9 +2281,9 @@ public Action Command_ClusterBomb(int client)
 		}
 		
 		CloseHandle(trace);			
-		pos[0] += vecs[0] * 32.0;
-		pos[1] += vecs[1] * 32.0;
-		ScaleVector(vecs, GetConVarFloat(g_hCV_hidden_bombthrowspeed));
+		eyePosVecs[0] += fwdVecs[0] * 32.0;
+		eyePosVecs[1] += fwdVecs[1] * 32.0;
+		ScaleVector(fwdVecs, GetConVarFloat(g_hCV_hidden_bombthrowspeed));
 		int ent = CreateEntityByName("prop_physics_override");
 		
 		if (IsValidEntity(ent))
@@ -2302,7 +2296,7 @@ public Action Command_ClusterBomb(int client)
 			SetEntProp(ent, Prop_Send, "m_iTeamNum", 3);
 			SetEntProp(ent, Prop_Send, "m_nSkin", 1);
 			DispatchSpawn(ent);
-			TeleportEntity(ent, pos, NULL_VECTOR, vecs);
+			TeleportEntity(ent, eyePosVecs, NULL_VECTOR, fwdVecs);
 			g_fHiddenBomb = g_fCV_hidden_bombtime;
 			CreateTimer(GetConVarFloat(g_hCV_hidden_bombdetonationdelay), SpawnClusters, ent, TIMER_FLAG_NO_MAPCHANGE);
 		}
@@ -2317,9 +2311,20 @@ public Action SpawnClusters(Handle timer, any ent)
 	{
 		float pos[3];
 		GetEntPropVector(ent, Prop_Data, "m_vecOrigin", pos);
-		EmitAmbientSound(g_sDetonationSound, pos, SOUND_FROM_WORLD, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, 0.0);
 		int client = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+		int particle = CreateEntityByName("info_particle_system");
 		AcceptEntityInput(ent, "Kill");
+		EmitAmbientSound(g_sDetonationSound, pos, SOUND_FROM_WORLD, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, 0.0);
+		
+		if (IsValidEntity(particle))
+		{					
+			DispatchKeyValue(particle, "effect_name", "pyrovision_explosion");
+			TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+			DispatchSpawn(particle);
+			ActivateEntity(particle);
+			AcceptEntityInput(particle, "start");
+			CreateTimer(5.0, StopParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
+		}
 
 		if (g_iTheCurrentHidden == 0) 
 		{
@@ -2327,13 +2332,15 @@ public Action SpawnClusters(Handle timer, any ent)
 		}
 
 		float ang[3];
-		
-		for(int i = 0; i < GetConVarInt(g_hCV_hidden_bombletcount); i++)
+		int bombCOunt = GetConVarInt(g_hCV_hidden_bombletcount);
+
+		for(int i = 0; i < bombCOunt; i++)
 		{
 			float fsv = GetConVarFloat(g_hCV_hidden_bombletspreadvel);
-			ang[0] = ((GetURandomFloat() + 0.1) * fsv) * ((GetURandomFloat() + 0.1) * 0.8);
-			ang[1] = ((GetURandomFloat() + 0.1) * fsv) * ((GetURandomFloat() + 0.1) * 0.8);
-			ang[2] = ((GetURandomFloat() + 0.1) * fsv) * ((GetURandomFloat() + 0.1) * 0.8);
+			float minsp = 1.0;
+			ang[0] = (GetURandomFloat() * (fsv - minsp) + minsp);
+			ang[1] = (GetURandomFloat() * (fsv - minsp) + minsp);
+			ang[2] = (GetURandomFloat() * (fsv - minsp) + minsp);
 			int ent2 = CreateEntityByName("prop_physics_override");
 			
 			if (IsValidEntity(ent2))
@@ -2349,6 +2356,16 @@ public Action SpawnClusters(Handle timer, any ent)
 				CreateTimer((GetURandomFloat() + 0.1) / 2.0 + 0.5, ExplodeBomblet, ent2, TIMER_FLAG_NO_MAPCHANGE);
 			}			
 		}
+	}
+
+	return Plugin_Handled;
+}
+//stop the particle
+public Action StopParticle(Handle timer, any particle)
+{
+	if (IsValidEntity(particle))
+	{
+		AcceptEntityInput(particle, "kill");
 	}
 
 	return Plugin_Handled;
@@ -2378,8 +2395,8 @@ public Action ExplodeBomblet(Handle timer, any ent)
 
 			if (IsValidEntity(physexplosion))
 			{
-				SetEntPropFloat(physexplosion, Prop_Data, "m_flMagnitude", 500.0);
-				SetEntPropFloat(physexplosion, Prop_Data, "m_flRadius", 100.0);
+				SetEntPropFloat(physexplosion, Prop_Data, "m_flMagnitude", 600.0);
+				SetEntPropFloat(physexplosion, Prop_Data, "m_flRadius", 200.0);
 				SetEntProp(physexplosion, Prop_Data, "m_bEnabled", 0);
 				DispatchKeyValue(physexplosion, "spawnflags", "27");
 				SetEntProp(physexplosion, Prop_Send, "m_iTeamNum", team);
@@ -2447,11 +2464,11 @@ void Client_TakeDamage(int victim, int attacker, int damage, int dmg_type = DMG_
 		{ 
 			DispatchKeyValue(victim,"targetname","cod_hurtme"); 
 			DispatchKeyValue(index,"DamageTarget","cod_hurtme"); 
-			DispatchKeyValue(index,"Damage", sDamage); 
+			DispatchKeyValue(index,"Damage",sDamage); 
 			DispatchKeyValue(index,"DamageType",sDamageType); 
 			DispatchKeyValue(index,"classname",weapon); 
 			DispatchSpawn(index); 
-			AcceptEntityInput(index,"Hurt", attacker); 
+			AcceptEntityInput(index,"Hurt",attacker); 
 			DispatchKeyValue(index,"classname","point_hurt"); 
 			DispatchKeyValue(victim,"targetname","cod_donthurtme"); 
 			RemoveEdict(index); 
