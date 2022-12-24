@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.36"
+#define PLUGIN_VERSION "1.37"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -240,7 +240,7 @@ public void OnPluginEnd()
 		return;
 	}
 	
-	if (g_iTheCurrentHidden && IsPlayerHereLoopCheck(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
+	if (g_iTheCurrentHidden && IsClientInGame(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
 	{
 		RemoveHiddenPowers(g_iTheCurrentHidden);
 		TF2_SetPlayerClass(g_iTheCurrentHidden, TFClass_Spy);
@@ -251,7 +251,7 @@ public void OnPluginEnd()
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsPlayerHereLoopCheck(i))
+		if (IsClientInGame(i))
 		{
 			SetEntProp(i, Prop_Send, "m_bGlowEnabled", 0);
 		}
@@ -404,7 +404,7 @@ void ActivatePlugin()
 	
 	for(int i = 1; i <= MaxClients; i++) 
 	{
-		if (IsPlayerHereLoopCheck(i)) 
+		if (IsClientInGame(i)) 
 		{
 			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
 		} 
@@ -1251,7 +1251,7 @@ public void arena_round_start(Handle event, const char[] name, bool dontBroadcas
 	g_bPlaying = true;
 	g_bHiddenStarvation = false;
 
-	if (IsPlayerHereLoopCheck(g_iTheCurrentHidden) && IsFakeClient(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
+	if (IsClientInGame(g_iTheCurrentHidden) && IsFakeClient(g_iTheCurrentHidden) && IsPlayerAlive(g_iTheCurrentHidden))
 	{
 		g_bTimerDie = false;
 		CreateTimer(1.0, Timer_Beacon, g_iTheCurrentHidden, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT );
@@ -1260,7 +1260,7 @@ public void arena_round_start(Handle event, const char[] name, bool dontBroadcas
 //a beacon for the hidden bot
 public Action Timer_Beacon(Handle timer, any client)
 {
-	if (!IsPlayerHereLoopCheck(client) || !IsPlayerAlive(client) || g_bTimerDie == true)
+	if (!IsClientInGame(client) || !IsPlayerAlive(client) || g_bTimerDie == true)
 	{
 		return Plugin_Stop;
 	}
@@ -1387,7 +1387,7 @@ public Action Timer_Win(Handle timer, any data)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsPlayerHereLoopCheck(i) && IsFakeClient(i) && IsPlayerAlive(i))
+		if (IsClientInGame(i) && IsFakeClient(i) && IsPlayerAlive(i))
 		{
 			Client_TakeDamage(i, i, 99999, DMG_CRUSH, "");
 		}
@@ -1770,7 +1770,7 @@ void Client_RespawnAll(bool Notify)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsPlayerHereLoopCheck(i))
+		if (IsClientInGame(i))
 		{
 			switch (GetClientTeam(i))
 			{
@@ -1824,7 +1824,7 @@ int Client_Total(int divider = 1)
 	for(int client = 1; client <= MaxClients; client++) 
 	{
 		
-		if (!IsClientConnected(client) || !IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= divider ) 
+		if (!IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= divider ) 
 		{
 			continue;
 		}
@@ -1874,7 +1874,7 @@ int Client_Get(int[] clients, bool considerPref)
 	
 	for(int client = 1; client <= MaxClients; client++) 
 	{
-		if (IsPlayerHereLoopCheck(client) && (GetClientTeam(client) >= 2) && ((considerPref == true && g_bHiddenPref[client] == true) || considerPref == false)) 
+		if (IsClientInGame(client) && (GetClientTeam(client) >= 2) && ((considerPref == true && g_bHiddenPref[client] == true) || considerPref == false)) 
 		{
 			clients[x++] = client;
 		}
@@ -1901,7 +1901,7 @@ int GetAliveEnemiesCount()
 	
 	for( int i = 1; i <= MaxClients; i++ ) 
 	{
-		if ( IsPlayerHereLoopCheck(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && !IsClientSourceTV(i) && !IsClientReplay(i) ) 
+		if ( IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && !IsClientSourceTV(i) && !IsClientReplay(i) ) 
 		{
 			clients += 1;
 		}
@@ -2064,7 +2064,7 @@ void ShowHiddenHP()
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsPlayerHereLoopCheck(i) && !IsFakeClient(i) && GetClientTeam(i) > 0)
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) > 0)
 		{
 			if (i != g_iTheCurrentHidden)
 			{
@@ -2483,10 +2483,5 @@ int GetRandomUInt(int min, int max)
 //a check used for non-loops
 bool IsPlayerHere(int client)
 {
-	return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
-}
-//a check used for loops
-bool IsPlayerHereLoopCheck(int client)
-{
-	return (IsClientConnected(client) && IsClientInGame(client));
+	return (client > 0 && client <= MaxClients && IsClientInGame(client));
 }
