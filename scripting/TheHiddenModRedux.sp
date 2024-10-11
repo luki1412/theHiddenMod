@@ -20,7 +20,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME "THMR"
-#define PLUGIN_VERSION "1.37"
+#define PLUGIN_VERSION "1.38"
 
 //int gvars
 int g_iTheCurrentHidden;
@@ -36,7 +36,6 @@ bool g_bHiddenStarvation;
 bool g_bActivated;
 bool g_bTimerDie;
 bool g_bTimerDieTick;
-bool g_bLateLoad;
 bool g_bJumped;
 bool g_bHiddenPref[MAXPLAYERS+1] = {true, ...};
 bool g_bHiddenPrefFunctionality = true;
@@ -65,6 +64,7 @@ ConVar g_hCV_hidden_visible_bomb;
 ConVar g_hCV_hidden_replacepyroweapons;
 ConVar g_hCV_hidden_replaceheavyweapons;
 ConVar g_hCV_hidden_allowsentries;
+ConVar g_hCV_hidden_allowsentrydamage;
 ConVar g_hCV_hidden_allowdispenserupgrade;
 ConVar g_hCV_hidden_allowteleporterupgrade;
 ConVar g_hCV_hidden_allowrazorback;
@@ -78,10 +78,17 @@ ConVar g_hCV_hidden_bombletmagnitude;
 ConVar g_hCV_hidden_bombletspreadvel;
 ConVar g_hCV_hidden_bombthrowspeed;
 ConVar g_hCV_hidden_bombdetonationdelay;
+ConVar g_hCV_hidden_hudverticalposition;
 Handle g_hWeaponEquip;
 //cvar globals
-int g_iCV_hidden_tauntdamage;
 bool g_bCV_hidden_forcebotsclass;
+bool g_bCV_hidden_taunts;
+bool g_bCV_hidden_tauntdamage;
+bool g_bCV_hidden_allowsentries;
+bool g_bCV_hidden_allowsentrydamage;
+bool g_bCV_hidden_allowdispenserupgrade;
+bool g_bCV_hidden_allowteleporterupgrade;
+bool g_bCV_hidden_allowrazorback;
 float g_fCV_hidden_stamina;
 float g_fCV_hidden_starvationtime;
 float g_fCV_hidden_bombtime;
@@ -89,6 +96,7 @@ float g_fCV_hidden_visible_damage;
 float g_fCV_hidden_visible_jarate; 
 float g_fCV_hidden_visible_pounce;
 float g_fCV_hidden_visible_bomb;
+float g_fCV_hidden_hudverticalposition;
 //cbomb precache
 char g_sCanisterModel[255] = "models/effects/bday_gib01.mdl";
 char g_sBombletModel[255] = "models/weapons/w_models/w_grenade_grenadelauncher.mdl";
@@ -121,7 +129,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		return APLRes_Failure;
 	}
 
-	g_bLateLoad = late;
 	#if defined _SteamWorks_Included
 	MarkNativeAsOptional("SteamWorks_SetGameDescription");
 	#endif
@@ -135,8 +142,9 @@ public void OnPluginStart()
 	g_hCV_hidden_taunts = CreateConVar("sm_thehidden_allowtaunts", "1", "Enables/disables taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_tauntdamage = CreateConVar("sm_thehidden_allowtauntdamage", "0", "Allow/disallow players to damage The Hidden with their taunts.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_replacepyroweapons = CreateConVar("sm_thehidden_replacepyroprimaries", "1", "Set whether pyro's primary weapons should be replaced with Dragon's Fury.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_replaceheavyweapons = CreateConVar("sm_thehidden_replaceheavyprimaries", "1", "Set whether pyro's primary weapons should be replaced with Brass Beast that has lowered damage.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "0", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_replaceheavyweapons = CreateConVar("sm_thehidden_replaceheavyprimaries", "1", "Set whether heavy's primary weapons should be replaced with Brass Beast that has lowered damage.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_allowsentries = CreateConVar("sm_thehidden_allowsentries", "1", "Set whether engineers are allowed to build sentries.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_hCV_hidden_allowsentrydamage = CreateConVar("sm_thehidden_allowsentrydamage", "0", "Set whether sentries deal damage to the Hidden.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowdispenserupgrade = CreateConVar("sm_thehidden_allowdispenserupgrade", "1", "Set whether engineers are allowed to upgrade dispensers.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowteleporterupgrade = CreateConVar("sm_thehidden_allowteleporterupgrade", "1", "Set whether engineers are allowed to upgrade teleporters.", FCVAR_NONE, true, 0.0, true, 1.0);
 	g_hCV_hidden_allowrazorback = CreateConVar("sm_thehidden_allowrazorback", "0", "Allow/disallow razorbacks for snipers.", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -150,13 +158,13 @@ public void OnPluginStart()
 	g_hCV_hidden_bombletcount = CreateConVar("sm_thehidden_bombletcount", "6", "Amount of bomb clusters(bomblets) inside a cluster bomb.", FCVAR_NONE, true, 1.0, true, 30.0);
 	g_hCV_hidden_bombletmagnitude = CreateConVar("sm_thehidden_bombletmagnitude", "50.0", "Magnitude of a bomblet.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_bombletspreadvel = CreateConVar("sm_thehidden_bombletspreadvel", "50.0", "Maximum spread velocity for a randomized direction, bomblets are going to use.", FCVAR_NONE, true, 1.0, true, 500.0);
-	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "1800.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 8000.0);
+	g_hCV_hidden_bombthrowspeed = CreateConVar("sm_thehidden_bombthrowspeed", "1000.0", "Cluster bomb throw speed.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_bombdetonationdelay = CreateConVar("sm_thehidden_bombdetonationdelay", "1.8", "Delay of the cluster bomb detonation.", FCVAR_NONE, true, 0.1, true, 100.0);
 	g_hCV_hidden_stamina = CreateConVar("sm_thehidden_stamina", "20.0", "The Hidden's stamina.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_starvationtime = CreateConVar("sm_thehidden_starvationtime", "100.0", "Time until the Hidden dies without killing anyone.", FCVAR_NONE, true, 10.0, true, 1000.0);
 	g_hCV_hidden_bombtime = CreateConVar("sm_thehidden_bombtime", "20.0", "Cluster bomb cooldown.", FCVAR_NONE, true, 1.0, true, 1000.0);
 	g_hCV_hidden_pref = CreateConVar("sm_thehidden_preferenceenabled", "1", "Sets whether The Hidden preference should be enabled.", FCVAR_NONE, true, 0.0, true, 1.0);
-    
+	g_hCV_hidden_hudverticalposition = CreateConVar("sm_thehidden_hudverticalposition", "0.120", "Vertical position of the first line of the hud text.", FCVAR_NONE, true, 0.0, true, 0.880);
 	g_fTickInterval = GetTickInterval(); // 0.014999 default
 
 	RegAdminCmd("sm_nexthidden", Cmd_NextHidden, ADMFLAG_CHEATS, "Forces a certain player to be the next Hidden, regardless of who wins the round.");
@@ -198,14 +206,7 @@ public void OnPluginStart()
 	// Auto-create the config file
 	AutoExecConfig(true, "The_Hidden_Mod_Redux");
 	SetConVarString(g_hCV_hidden_version, PLUGIN_VERSION);
-	LoadCvars();
 	LoadTranslations("the.hidden.mod.redux.phrases");
-	
-	if (g_bLateLoad && GetConVarBool(g_hCV_hidden_enabled) && IsArenaMap()) 
-	{
-		OnConfigsExecuted();
-		ActivatePlugin();
-	} 
 
 	HookConVarChange(g_hCV_hidden_enabled, cvhook_enabled);
 	g_hHiddenHudHp = CreateHudSynchronizer();
@@ -267,7 +268,6 @@ public void OnLibraryAdded(const char[] name)
 	{
 		g_bSteamWorks = true;
 	}
-	
 }
 //if SteamWorks isnt running anymore
 public void OnLibraryRemoved(const char[] name) 
@@ -294,21 +294,7 @@ void SetGameDescription()
 	SteamWorks_SetGameDescription(gameDesc);
 }
 #endif
-//change some tf2 cvars
-public void OnConfigsExecuted() 
-{
-	SetConVarInt(FindConVar("tf_arena_use_queue"), 0);
-	SetConVarInt(FindConVar("tf_arena_override_team_size"), 32);
-	SetConVarInt(FindConVar("mp_teams_unbalance_limit"), 0);
-	SetConVarInt(FindConVar("tf_arena_first_blood"), 0);
-	SetConVarInt(FindConVar("mp_autoteambalance"), 0);
-	SetConVarInt(FindConVar("tf_dropped_weapon_lifetime"), 0);
-	SetConVarInt(FindConVar("tf_classlimit"), 0);
-	SetConVarInt(FindConVar("tf_playergib"), 0);
-	SetConVarInt(FindConVar("tf_bot_reevaluate_class_in_spawnroom"), 0);
-	SetConVarString(FindConVar("tf_bot_force_class"), "");
-}
-//attempt to activate the plugin on mapstart, change game and precache sounds and models
+//attempt to activate the plugin on mapstart(called on lateload as well), change game and precache sounds and models
 public void OnMapStart() 
 {
 	PrecacheSound(g_sDetonationSound, true);
@@ -340,6 +326,16 @@ public void OnMapEnd()
 //load these only when the game starts
 void LoadCvars()
 {
+	SetConVarInt(FindConVar("tf_arena_use_queue"), 0);
+	SetConVarInt(FindConVar("tf_arena_override_team_size"), 32);
+	SetConVarInt(FindConVar("mp_teams_unbalance_limit"), 0);
+	SetConVarInt(FindConVar("tf_arena_first_blood"), 0);
+	SetConVarInt(FindConVar("mp_autoteambalance"), 0);
+	SetConVarInt(FindConVar("tf_dropped_weapon_lifetime"), 0);
+	SetConVarInt(FindConVar("tf_classlimit"), 0);
+	SetConVarInt(FindConVar("tf_playergib"), 0);
+	SetConVarInt(FindConVar("tf_bot_reevaluate_class_in_spawnroom"), 0);
+	SetConVarString(FindConVar("tf_bot_force_class"), "");
 	g_fCV_hidden_stamina = GetConVarFloat(g_hCV_hidden_stamina);
 	g_fCV_hidden_starvationtime = GetConVarFloat(g_hCV_hidden_starvationtime);
 	g_fCV_hidden_bombtime = GetConVarFloat(g_hCV_hidden_bombtime);
@@ -347,8 +343,15 @@ void LoadCvars()
 	g_fCV_hidden_visible_jarate = GetConVarFloat(g_hCV_hidden_visible_jarate); 
 	g_fCV_hidden_visible_pounce = GetConVarFloat(g_hCV_hidden_visible_pounce);
 	g_fCV_hidden_visible_bomb = GetConVarFloat(g_hCV_hidden_visible_bomb);
-	g_iCV_hidden_tauntdamage = GetConVarInt(g_hCV_hidden_tauntdamage);
+	g_fCV_hidden_hudverticalposition = GetConVarFloat(g_hCV_hidden_hudverticalposition);
 	g_bCV_hidden_forcebotsclass = GetConVarBool(g_hCV_hidden_forcebotsclass);
+	g_bCV_hidden_taunts = GetConVarBool(g_hCV_hidden_taunts);
+	g_bCV_hidden_tauntdamage = GetConVarBool(g_hCV_hidden_tauntdamage);
+	g_bCV_hidden_allowsentries = GetConVarBool(g_hCV_hidden_allowsentries);
+	g_bCV_hidden_allowsentrydamage = GetConVarBool(g_hCV_hidden_allowsentrydamage);
+	g_bCV_hidden_allowdispenserupgrade = GetConVarBool(g_hCV_hidden_allowdispenserupgrade);
+	g_bCV_hidden_allowteleporterupgrade = GetConVarBool(g_hCV_hidden_allowteleporterupgrade);
+	g_bCV_hidden_allowrazorback = GetConVarBool(g_hCV_hidden_allowrazorback);
 }
 //activate the mod
 void ActivatePlugin() 
@@ -358,6 +361,7 @@ void ActivatePlugin()
 		return;
 	}
 
+	LoadCvars();
 	CreateTimer(30.0, Timer_Win, _, TIMER_FLAG_NO_MAPCHANGE);
 	
 	g_bActivated = true;
@@ -510,7 +514,7 @@ public void player_upgradedobject(Handle event, const char[] name, bool dontBroa
 		clientsmetal = 200;
 	}
 	
-	if (GetConVarBool(g_hCV_hidden_allowdispenserupgrade) == false && obj == view_as<int>(TFObject_Dispenser)) 
+	if (g_bCV_hidden_allowdispenserupgrade == false && obj == view_as<int>(TFObject_Dispenser)) 
 	{
 		SetEntProp(objectid, Prop_Send, "m_iUpgradeLevel", 0);
 		SetEntPropFloat(objectid, Prop_Send, "m_flPercentageConstructed", 0.99 );
@@ -520,7 +524,7 @@ public void player_upgradedobject(Handle event, const char[] name, bool dontBroa
 		return;
 	}
 	
-	if (GetConVarBool(g_hCV_hidden_allowteleporterupgrade) == false && obj == view_as<int>(TFObject_Teleporter)) 
+	if (g_bCV_hidden_allowteleporterupgrade == false && obj == view_as<int>(TFObject_Teleporter)) 
 	{
 		SetEntProp(objectid, Prop_Send, "m_iUpgradeLevel", 0);
 		SetEntPropFloat(objectid, Prop_Send, "m_flPercentageConstructed", 0.99 );
@@ -549,7 +553,7 @@ public void player_builtobject(Handle event, const char[] name, bool dontBroadca
 		clientsmetal = 200;
 	}
 	
-	if (GetConVarBool(g_hCV_hidden_allowsentries) == false && obj == view_as<int>(TFObject_Sentry)) 
+	if (g_bCV_hidden_allowsentries == false && obj == view_as<int>(TFObject_Sentry)) 
 	{
 		AcceptEntityInput(objectid, "Kill");
 		SetEntData(client, metaloff, clientsmetal, 4, true);
@@ -611,7 +615,7 @@ public Action Cmd_build(int client, char[] cmd, int args)
 	GetCmdArg(1, arg1, sizeof(arg1));
 	int building = StringToInt(arg1);
 	
-	if (!GetConVarBool(g_hCV_hidden_allowsentries) && building == view_as<int>(TFObject_Sentry)) 
+	if (g_bCV_hidden_allowsentries == false && building == view_as<int>(TFObject_Sentry)) 
 	{
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_eng3");
 		return Plugin_Handled;
@@ -627,7 +631,7 @@ public Action Cmd_taunt(int client, char[] cmd, int args)
 		return Plugin_Continue;
 	}
 	
-	if (!GetConVarBool(g_hCV_hidden_taunts)) 
+	if (g_bCV_hidden_taunts == false) 
 	{
 		CPrintToChat(client, "{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_taunts");
 		return Plugin_Handled;
@@ -731,18 +735,25 @@ public Action OnTakeDamage(int client, int &attacker, int &inflictor, float &dam
 
 	if (client == g_iTheCurrentHidden)
 	{
-		if (GetConVarBool(g_hCV_hidden_replaceheavyweapons) && (weapon>0) && (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == 312)) 
+		if (damagetype & DMG_FALL)
+		{
+			return Plugin_Handled;
+		}
+
+		if (GetConVarBool(g_hCV_hidden_replaceheavyweapons) && (weapon>0) && HasEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") && (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == 312)) 
 		{
 			damage /= 5.0;
 			return Plugin_Changed;
 		}
 
-		if (damagetype & DMG_FALL)
+		char entName[64];
+		GetEntityClassname(inflictor, entName, sizeof(entName));
+		if ((g_bCV_hidden_allowsentrydamage == false) && (StrEqual(entName, "obj_sentrygun", true) || StrEqual(entName, "tf_projectile_sentryrocket", true)))
 		{
 			return Plugin_Handled;
 		}
 		
-		if (g_iCV_hidden_tauntdamage == 0)
+		if (g_bCV_hidden_tauntdamage == false)
 		{
 			switch (damagecustom)
 			{
@@ -866,7 +877,7 @@ public void player_spawn(Handle event, const char[] name, bool dontBroadcast)
 			RequestFrame(HandlePyroWeapons, client);
 		}
 
-		if (!GetConVarBool(g_hCV_hidden_allowrazorback) && class == TFClass_Sniper)
+		if (!g_bCV_hidden_allowrazorback && class == TFClass_Sniper)
 		{
 			int ent = MaxClients+1;
 			
@@ -1209,10 +1220,7 @@ public void TF2_OnConditionAdded(int client, TFCond condition)
 		}
 		case TFCond_Disguising, TFCond_Disguised:
 		{
-			if (!IsFakeClient(client))
-			{
-				TF2_RemoveCondition(client, condition);
-			}
+			TF2_RemoveCondition(client, condition);
 		}
 	}
 }
@@ -1370,6 +1378,16 @@ public Action NotifyPlayers(Handle timer)
 	if (IsHiddenPreferenceEnabled()) 
 	{
 		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify2");
+	}
+
+	if (g_bCV_hidden_allowsentrydamage == false && g_bCV_hidden_allowsentries == true)
+	{
+		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify3");
+	}
+
+	if (g_bCV_hidden_tauntdamage == false && g_bCV_hidden_taunts == true)
+	{
+		CPrintToChatAll("{mediumseagreen}[%s] %t", PLUGIN_NAME, "hidden_notify4");
 	}
 
 	return Plugin_Continue;
@@ -1742,16 +1760,8 @@ bool IsArenaMap()
 //is there enough players? can we play?
 bool CanPlay() 
 {
-	int numClients = Client_Total();
 	// Requires 2 or more players, including bots in the server.
-	if (numClients >= 2) 
-	{
-		return true;
-	} 
-	else 
-	{
-		return false;
-	}
+	return Client_Total() >= 2;
 }
 //enable or disable the plugin - cvar changed
 public void cvhook_enabled(Handle cvar, const char[] oldVal, const char[] newVal) 
@@ -1824,7 +1834,7 @@ int Client_Total(int divider = 1)
 	for(int client = 1; client <= MaxClients; client++) 
 	{
 		
-		if (!IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || GetClientTeam(client) <= divider ) 
+		if (!IsClientInGame(client) || IsClientReplay(client) || IsClientSourceTV(client) || (GetClientTeam(client) <= divider) ) 
 		{
 			continue;
 		}
@@ -1864,8 +1874,7 @@ int Client_GetRandom()
 		return clients[0];
 	}
 
-	int random = GetRandomUInt(0, num-1);
-	return clients[random];
+	return clients[GetRandomUInt(0, num-1)];
 }
 //clients count
 int Client_Get(int[] clients, bool considerPref)
@@ -1901,7 +1910,7 @@ int GetAliveEnemiesCount()
 	
 	for( int i = 1; i <= MaxClients; i++ ) 
 	{
-		if ( IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && !IsClientSourceTV(i) && !IsClientReplay(i) ) 
+		if ( IsClientInGame(i) && IsPlayerAlive(i) && (GetClientTeam(i) == 2) && !IsClientSourceTV(i) && !IsClientReplay(i) ) 
 		{
 			clients += 1;
 		}
@@ -2062,6 +2071,14 @@ void ShowHiddenHP()
 		return;
 	}
 	
+	float holdtime = 0.2;
+	float centerpos = -1.0;
+	float defaulttoppos = g_fCV_hidden_hudverticalposition;
+	float secondtoppos = defaulttoppos + 0.025;
+	float thirdtoppos = defaulttoppos + 0.050;
+	float fourthtoppos = defaulttoppos + 0.075;
+	int alpha = 255;
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) > 0)
@@ -2070,11 +2087,11 @@ void ShowHiddenHP()
 			{
 				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.2, 50, 255, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(centerpos, defaulttoppos, holdtime, 50, 255, 50, alpha, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.2, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(centerpos, defaulttoppos, holdtime, 255, 50, 50, alpha, 0, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(i, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud", hppercent);
@@ -2083,19 +2100,19 @@ void ShowHiddenHP()
 			{
 				if (hppercent > 25.0) 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.2, 40, 255, 40, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(centerpos, defaulttoppos, holdtime, 40, 255, 40, alpha, 0, 0.0, 0.0, 0.0);
 				} 
 				else 
 				{
-					SetHudTextParams(-1.0, 0.1, 0.2, 255, 50, 50, 255, 0, 0.0, 0.0, 0.0);
+					SetHudTextParams(centerpos, defaulttoppos, holdtime, 255, 50, 50, alpha, 0, 0.0, 0.0, 0.0);
 				}
 				
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHp, "%t: %.0i%%", "hidden_hud2", hppercent);
-				SetHudTextParams(-1.0, 0.125, 0.2, 10, 255, 128, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(centerpos, secondtoppos, holdtime, 10, 255, 128, alpha, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudStamina, "%t: %.0i%%", "hidden_hud3", stamina);
-				SetHudTextParams(-1.0, 0.150, 0.2, 70, 70, 255, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(centerpos, thirdtoppos, holdtime, 70, 70, 255, alpha, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudClusterBomb, "%t: %.0i%%", "hidden_hud4", clusterbomb);
-				SetHudTextParams(-1.0, 0.175, 0.2, 144, 40, 255, 255, 0, 0.0, 0.0, 0.0);
+				SetHudTextParams(centerpos, fourthtoppos, holdtime, 144, 40, 255, alpha, 0, 0.0, 0.0, 0.0);
 				ShowSyncHudText(g_iTheCurrentHidden, g_hHiddenHudHunger, "%t: %.0i%%", "hidden_hud5", hunger);
 			}
 		}
@@ -2483,5 +2500,5 @@ int GetRandomUInt(int min, int max)
 //a check used for non-loops
 bool IsPlayerHere(int client)
 {
-	return (client > 0 && client <= MaxClients && IsClientInGame(client));
+	return (client > 0) && (client <= MaxClients) && IsClientInGame(client);
 }

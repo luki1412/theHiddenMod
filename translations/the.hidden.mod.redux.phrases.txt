@@ -137,6 +137,14 @@
 	{
 		"en"		"{powderblue}You can type {crimson}/hiddenpref{powderblue} in chat to open the {crimson}Hidden{powderblue} preference menu."
 	}
+	"hidden_notify3"
+	{
+		"en"		"{powderblue}Sentries deal no damage to the {crimson}Hidden{powderblue}."
+	}
+	"hidden_notify4"
+	{
+		"en"		"{powderblue}Taunts deal no damage to the {crimson}Hidden{powderblue}."
+	}
 	//no colors
 	"hidden_help"
 	{
