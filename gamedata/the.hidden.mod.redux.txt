@@ -8,8 +8,11 @@
 			"WeaponEquip"
 			{
 				"windows"	"271"
+				"windows64"	"271"
 				"linux"		"272"
+				"linux64"	"272"
 				"mac"		"272"
+				"mac64"		"272"
 			}
 		}
 	}
