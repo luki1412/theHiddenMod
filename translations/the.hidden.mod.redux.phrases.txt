@@ -246,4 +246,9 @@
 		"#format"	"{1:N}"
 		"en"		"{crimson}{1}{powderblue} have changed their the {crimson}Hidden{powderblue} preference after winning. Selecting the next {crimson}Hidden{powderblue} at random."
 	}
+	"hidden_top_damage_list"
+	{
+		"#format"	"{1:N},{2:s},{3:s},{4:i},{5:i},{6:i}"
+		"en"		"{powderblue}Top 3 players based on damage: \n1. {crimson}{1}{powderblue} -> {crimson}{4}{powderblue} damage, \n2. {crimson}{2}{powderblue} -> {crimson}{5}{powderblue} damage, \n3. {crimson}{3}{powderblue} -> {crimson}{6}{powderblue} damage."
+	}
 }
