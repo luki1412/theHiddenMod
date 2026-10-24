@@ -12,6 +12,10 @@
 	{
 		"en"		"{powderblue}You can't build sentries! Metal refunded."
 	}
+	"hidden_weaponreplaced"
+	{
+		"en"		"{powderblue}Some of your chosen weapons are not allowed and were replaced."
+	}
 	"hidden_taunts"
 	{
 		"en"		"{powderblue}Taunts are disabled!"
@@ -28,7 +32,7 @@
 	}
 	"hidden_win"
 	{
-		"en"		"{powderblue}The {crimson}Hidden{powderblue} killed the entire team {crimson}IRIS{powderblue}! the next {crimson}Hidden{powderblue} will be chosen at random!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} killed the entire team {crimson}IRIS{powderblue}! The next {crimson}Hidden{powderblue} will be chosen at random!"
 	}
 	"hidden_win2"
 	{
@@ -40,7 +44,7 @@
 	}
 	"hidden_win4"
 	{
-		"en"		"{powderblue}The {crimson}Hidden{powderblue} committed suicide. The next {crimson}Hidden{powderblue} will be chosen at random!"
+		"en"		"{powderblue}The {crimson}Hidden{powderblue} died by suicide. The next {crimson}Hidden{powderblue} will be chosen at random!"
 	}
 	"hidden_winner"
 	{
